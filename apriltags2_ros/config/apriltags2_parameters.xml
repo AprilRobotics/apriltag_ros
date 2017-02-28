@@ -1,0 +1,14 @@
+<launch>
+
+  <!-- AprilTags 2 code parameters -->
+  <param name="tag_family"        type="string" value="tag36h11" />  <!-- default: tag36h11 -->
+  <param name="tag_border"        type="int"    value="1" />         <!-- default: 1 -->
+  <param name="tag_threads"       type="int"    value="2" />         <!-- default: 2 -->
+  <param name="tag_decimate"      type="double" value="1.0" />       <!-- default: 1.0 -->
+  <param name="tag_blur"          type="double" value="0.0" />       <!-- default: 0.0 -->
+  <param name="tag_refine_edges"  type="int"    value="1" />         <!-- default: 1 -->
+  <param name="tag_refine_decode" type="int"    value="0" />         <!-- default: 0 -->
+  <param name="tag_refine_pose"   type="int"    value="0" />         <!-- default: 0 -->
+  <param name="tag_debug"         type="int"    value="0" />         <!-- default: 0 -->
+
+</launch>

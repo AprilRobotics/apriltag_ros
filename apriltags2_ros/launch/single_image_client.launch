@@ -1,0 +1,25 @@
+<launch>
+
+  <arg name="launch_prefix" default="" /> <!--set to value="gdbserver localhost:10000" for remote debugging-->
+  <arg name="node_namespace" default="apriltags2_ros_single_image_client_node" />
+  <arg name="image_load_path" /> <!-- Where to load image for analysis from -->
+  <arg name="image_save_path" /> <!-- Where to save tag detections image -->
+
+  <!-- Set ApriTags 2 algorithm and common parameters -->
+  <!--<include file="$(find apriltags2_ros)/config/apriltags2_parameters.xml" ns="$(arg node_namespace)" />-->
+  <include file="$(find apriltags2_ros)/config/common_parameters.xml" ns="$(arg node_namespace)" />
+
+  <node pkg="apriltags2_ros" type="apriltags2_ros_single_image_client_node" name="$(arg node_namespace)" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" >
+
+    <param name="image_load_path" type="str" value="$(arg image_load_path)" />
+    <param name="image_save_path" type="str" value="$(arg image_save_path)" />
+
+    <!-- Camera intrinsic parameters -->
+    <param name="fx" type="double" value="349.5356140899997" />
+    <param name="fy" type="double" value="349.0762068800002" />
+    <param name="cx" type="double" value="381.63184906000015" />
+    <param name="cy" type="double" value="204.01243465999985" />
+
+  </node>
+
+</launch>

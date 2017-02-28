@@ -1,0 +1,16 @@
+<launch>
+  
+  <!-- Parameters common to the continuous and single image nodes -->
+  <param name="publish_tf"       type="bool"   value="true" />      <!-- default: false -->
+  <param name="run_quietly"      type="bool"   value="true" />      <!-- default: true -->
+  <param name="projected_optics" type="bool"   value="true" />      <!-- default: true (enables projected optical measurements for more accurate tag transformations) -->
+
+  <!-- Describe the tags (ID and corresponding size (side length)) -->
+  <rosparam param="tag_descriptions" subst_value="true">
+    [
+    {id: 0, size: 0.18},
+    {id: 3, size: 0.13}
+    ]
+  </rosparam>
+
+</launch>

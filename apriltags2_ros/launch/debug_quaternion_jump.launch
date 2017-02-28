@@ -1,0 +1,11 @@
+<launch>
+
+  <!-- <arg name="bagfile_path" default="/home/malyutad/Dropbox/university_studies/eth_zurich/semester_3/jpl_internship/work/bagfiles/apriltags_quaternion_jumps_camera_signals_2017-02-22-19-31-38_restamped.bag" /> -->
+  <arg name="node_namespace" default="apriltags2_ros_continuous_node" />
+  
+  <!-- Launch apriltags2_ros node -->
+  <include file="$(find apriltags2_ros)/launch/continuous_detection.launch" >
+    <arg name="launch_prefix" value="gdbserver localhost:10000" />
+  </include>
+  
+</launch>

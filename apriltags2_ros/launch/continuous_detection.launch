@@ -1,0 +1,18 @@
+<launch>
+
+  <arg name="launch_prefix" default="" /> <!--set to value="gdbserver localhost:10000" for remote debugging-->
+  <arg name="node_namespace" default="apriltags2_ros_continuous_node" />
+
+  <!-- Set ApriTags 2 algorithm and common parameters -->
+  <include file="$(find apriltags2_ros)/config/apriltags2_parameters.xml" ns="$(arg node_namespace)" />
+  <include file="$(find apriltags2_ros)/config/common_parameters.xml" ns="$(arg node_namespace)" />
+
+  <node pkg="apriltags2_ros" type="apriltags2_ros_continuous_node" name="$(arg node_namespace)" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" >
+    <!-- Remap topics from those user in code to those on the ROS network -->
+    <remap from="image_rect" to="/camera_rect/image_rect" />
+    <remap from="camera_info" to="/camera_rect/camera_info" />
+
+    <param name="publish_tag_detections_image" type="bool" value="true" />      <!-- default: false -->
+  </node>
+
+</launch>
