@@ -5,6 +5,7 @@ namespace apriltags2_ros {
 SingleImageDetector::SingleImageDetector(ros::NodeHandle& nh, ros::NodeHandle& pnh) : tag_detector_(pnh) {
   // Advertise the single image analysis service
   single_image_analysis_service_ = nh.advertiseService("single_image_tag_detection",&SingleImageDetector::analyze_image, this);
+  tag_detections_publisher_ = nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
   ROS_INFO_STREAM("Namespace: " << ros::this_node::getNamespace().c_str());
   ROS_INFO_STREAM("Ready to do tag detection on single images");
 }
@@ -26,7 +27,11 @@ bool SingleImageDetector::analyze_image(apriltags2_ros::AnalyzeSingleImage::Requ
 
   // Detect tags in the image
   cv_bridge::CvImagePtr loaded_image(new cv_bridge::CvImage(std_msgs::Header(),"bgr8",image));
+  loaded_image->header.frame_id = "camera";
   response.tag_detections = tag_detector_.detect_tags(loaded_image,sensor_msgs::CameraInfoConstPtr(new sensor_msgs::CameraInfo(request.camera_info)));
+
+  // Publish detected tags (AprilTagDetectionArray, basically an array of geometry_msgs/PoseWithCovarianceStamped)
+  tag_detections_publisher_.publish(response.tag_detections);
 
   // Save tag detections image
   tag_detector_.draw_detections(loaded_image);

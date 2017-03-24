@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
   service.request.full_path_where_to_save_image = apriltags2_ros::apriltag_getopt<std::string>(pnh, "image_save_path", "");
 
   // Replicate sensors_msgs/CameraInfo message (must be up-to-date with the analyzed image!)
+  
   service.request.camera_info.height = 480;
   service.request.camera_info.width = 752;
   service.request.camera_info.distortion_model = "plumb_bob";

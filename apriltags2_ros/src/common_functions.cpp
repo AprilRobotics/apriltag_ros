@@ -12,25 +12,36 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(apriltag_getopt<std::str
                                                 refine_pose_(apriltag_getopt<int>(pnh, "tag_refine_pose", 0)),
                                                 debug_(apriltag_getopt<int>(pnh, "tag_debug", 0)),
                                                 run_quietly_(apriltag_getopt<bool>(pnh, "run_quietly", true)),
-                                                publish_tf_(apriltag_getopt<bool>(pnh, "publish_tf", false)),
-                                                rot_quaternion_previous_(0,0,0,0) {
-  // parse tag descriptions specified by user (stored on ROS parameter server)
-  XmlRpc::XmlRpcValue april_tag_descriptions; // stores an arbitrary XML/RPC value from the ROS parameter server
-  if(!pnh.getParam("tag_descriptions", april_tag_descriptions)) {
+                                                publish_tf_(apriltag_getopt<bool>(pnh, "publish_tf", false)) {
+  // parse standalone tag descriptions specified by user (stored on ROS parameter server)
+  XmlRpc::XmlRpcValue standalone_tag_descriptions; // stores an arbitrary XML/RPC value from the ROS parameter server
+  if(!pnh.getParam("standalone_tags", standalone_tag_descriptions)) {
     ROS_WARN("No april tags specified");
   } else {
     try {
-      descriptions_ = parse_tag_descriptions(april_tag_descriptions);
+      standalone_tag_descriptions_ = parse_standalone_tags(standalone_tag_descriptions);
     } catch(XmlRpc::XmlRpcException e) {
-      // in case any of the asserts in parse_tag_descriptions() fail
-      ROS_ERROR_STREAM("Error loading tag descriptions: " << e.getMessage().c_str());
+      // in case any of the asserts in parse_standalone_tags() fail
+      ROS_ERROR_STREAM("Error loading standalone tag descriptions: " << e.getMessage().c_str());
+    }
+  }
+
+  // parse tag bundle descriptions specified by user (stored on ROS parameter server)
+  XmlRpc::XmlRpcValue tag_bundle_descriptions;
+  if(!pnh.getParam("tag_bundles", tag_bundle_descriptions)) {
+    ROS_WARN("No tag bundles specified");
+  } else {
+    try {
+      tag_bundle_descriptions_ = parse_tag_bundles(tag_bundle_descriptions);
+    } catch(XmlRpc::XmlRpcException e) {
+      // in case any of the asserts in parse_standalone_tags() fail
+      ROS_ERROR_STREAM("Error loading tag bundle descriptions: " << e.getMessage().c_str());
     }
   }
 
   // Get frame which the sensor (camera) data is associated with
-  if(!pnh.getParam("sensor_frame_id_", sensor_frame_id_)) { //
+  if(!pnh.getParam("sensor_frame_id", sensor_frame_id_))
     sensor_frame_id_ = "";
-  }
 
   // Get whether to use the P matrix (Projection/camera matrix) or K matrix (Intrinsic camera matrix) of sensor_msgs/CameraInfo message
   // true selects the P matrix (the recommended choice)
@@ -75,6 +86,9 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(apriltag_getopt<std::str
   td_->refine_edges = refine_edges_;
   td_->refine_decode = refine_decode_;
   td_->refine_pose = refine_pose_;
+
+  // Create the apriltags variance models (result of noise statistical analysis)
+  setupVarianceModels();
 }
 
 // destructor
@@ -109,8 +123,9 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
                                   .buf = gray_image.data
   };
 
-  // Run AprilTags 2 algorithm on the image
-  detections_ = apriltag_detector_detect(td_, &apriltags2_image);
+  // Set the camera frame name
+  if (!sensor_frame_id_.empty())
+    image->header.frame_id = sensor_frame_id_;
 
   // Get camera intrinsic properties
   double fx; // focal length in camera x-direction (in pixels)
@@ -133,31 +148,55 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
     cy = camera_info->K[5];
   }
 
-  // Set the camera frame name
-  if (!sensor_frame_id_.empty())
-    image->header.frame_id = sensor_frame_id_;
+  // Run AprilTags 2 algorithm on the image
+  detections_ = apriltag_detector_detect(td_, &apriltags2_image);
 
   // Compute the estimated translation and rotation individually for each detected tag
   AprilTagDetectionArray tag_detection_array;
+  std::vector<std::string > detection_names;
   tag_detection_array.header = image->header;
-
+  std::map<std::string, std::vector<cv::Point3d > > bundleObjectPoints;
+  std::map<std::string, std::vector<cv::Point2d > > bundleImagePoints;
   for (int i=0; i < zarray_size(detections_); i++) {
 
     // Get the i-th detected tag
     apriltag_detection_t *detection;
     zarray_get(detections_, i, &detection);
 
-    // Get the description of this tag (supplied by user via ROS parameter server)
-    std::map<int, TagDescription>::const_iterator description_itr = descriptions_.find(detection->id);
-    if (description_itr == descriptions_.end()) {
-      ROS_WARN_THROTTLE(10.0, "Found tag: %d, but no description was found for it... skipping this tag", detection->id);
-      //zarray_remove
-      continue;
-    }
-    TagDescription description = description_itr->second;
-    double tag_size = description.size();
+    // Boostrap this for loop to find this tag's description amongst
+    // the tag bundles. If found, add its points to the bundle's set of
+    // object-image corresponding points (tag corners) for cv::solvePnP.
+    // Don't yet run cv::solvePnP on the bundles, though, since we're in
+    // the process of collecting all the object-image corresponding points
+    int tagID = detection->id;
+    for (int j=0; j<tag_bundle_descriptions_.size(); j++) {
+      // Iterate over the registered bundles
+      TagBundleDescription bundle = tag_bundle_descriptions_[j];
+      
+      if (bundle.id2idx_.find(tagID) != bundle.id2idx_.end()) {
+        // This detected tag belongs to the j-th tag bundle (its ID was found in the bundle description)
+        std::string bundleName = bundle.name();
 
-    // get estimated tag position and orientation
+        ////// Corner points in the master tag ("world frame") coordinates
+        double s = bundle.memberSize(tagID)/2;
+        addObjectPoints(s, bundle.memberT_mi(tagID), bundleObjectPoints[bundleName]);
+
+        ////// Corner points in the image coordinates
+        addImagePoints(detection, bundleImagePoints[bundleName]);
+      }
+    }
+
+    // Find this tag's description amongst the standalone tags
+    StandaloneTagDescription* standaloneDescription;
+    if (!findStandaloneTagDescription(tagID, standaloneDescription))
+      continue;
+    
+    //////////////////////////////////////////////////////////////////
+    // The remainder of this for loop is concerned with standalone tag
+    // poses!
+    double tag_size = standaloneDescription->size();
+
+    // Get estimated tag pose in the camera frame.
     //
     // Note on frames:
     // The raw AprilTags 2 uses the following frames:
@@ -175,30 +214,23 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
     // Using these frames together with cv::solvePnP directly avoids
     // AprilTag 2's frames altogether.
     // TODO solvePnP[Ransac] better?
-    Eigen::Matrix4d transform = getRelativeTransform(detection, tag_size, fx, fy, cx, cy);
+    std::vector<cv::Point3d > standaloneTagObjectPoints;
+    std::vector<cv::Point2d > standaloneTagImagePoints;
+    addObjectPoints(tag_size/2, cv::Matx44d::eye(), standaloneTagObjectPoints);
+    addImagePoints(detection, standaloneTagImagePoints);
+    Eigen::Matrix4d transform = getRelativeTransform(standaloneTagObjectPoints, standaloneTagImagePoints, fx, fy, cx, cy);
     Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
     Eigen::Quaternion<double> rot_quaternion(rot);
 
     // If the dot product is negative, the quaternions have opposite
     // handed-ness, Fix by reversing one quaternion.
-    if (rot_quaternion.dot(rot_quaternion_previous_) < 0.0f) {
-      ROS_DEBUG("Quaternion flipped. Switching sign!");
-      rot_quaternion.w() *= -1;
-      rot_quaternion.x() *= -1;
-      rot_quaternion.y() *= -1;
-      rot_quaternion.z() *= -1;
+    // TODO somehow this does not seem to work??
+    if (rot_quaternion.dot(standaloneDescription->previous_quaternion_) < 0.0f) {
+      flipQuaternion(rot_quaternion);
     }
-    rot_quaternion_previous_ = rot_quaternion;
+    standaloneDescription->previous_quaternion_ = rot_quaternion;
     
-    geometry_msgs::PoseStamped tag_pose;
-    tag_pose.pose.position.x = transform(0, 3);
-    tag_pose.pose.position.y = transform(1, 3);
-    tag_pose.pose.position.z = transform(2, 3);
-    tag_pose.pose.orientation.x = rot_quaternion.x();
-    tag_pose.pose.orientation.y = rot_quaternion.y();
-    tag_pose.pose.orientation.z = rot_quaternion.z();
-    tag_pose.pose.orientation.w = rot_quaternion.w();
-    tag_pose.header = image->header;
+    geometry_msgs::PoseWithCovarianceStamped tag_pose = makeTagPose(transform, rot_quaternion, image->header, (int)(standaloneDescription->size()*1000));
 
     // Add the detection to the back of the tag detection array
     AprilTagDetection tag_detection;
@@ -206,16 +238,60 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
     tag_detection.id = detection->id;
     tag_detection.size = tag_size;
     tag_detection_array.detections.push_back(tag_detection);
+    detection_names.push_back(standaloneDescription->frame_name());
+  }
 
-    // print quick-reference debug info about tag detection
+  ////////////////////////////////////////////////////////////////////
+  // Estimate master tag pose of each bundle in which at least one
+  // member tag was detected
+
+  for (int j=0; j<tag_bundle_descriptions_.size(); j++) {
+    // Get bundle name
+    std::string bundleName = tag_bundle_descriptions_[j].name();
+
+    std::map<std::string, std::vector<cv::Point3d > >::iterator it = bundleObjectPoints.find(bundleName);
+    if (it != bundleObjectPoints.end()) {
+      // Some member tags of this bundle were detected, get the bundle's position!
+      TagBundleDescription& bundle = tag_bundle_descriptions_[j];
+
+      Eigen::Matrix4d transform = getRelativeTransform(bundleObjectPoints[bundleName], bundleImagePoints[bundleName], fx, fy, cx, cy);
+      Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
+      Eigen::Quaternion<double> rot_quaternion(rot);
+
+      // If the dot product is negative, the quaternions have opposite
+      // handed-ness, Fix by reversing one quaternion.
+      // TODO somehow this does not seem to work??
+      if (rot_quaternion.dot(bundle.previous_quaternion_) < 0.0f) {
+        flipQuaternion(rot_quaternion);
+      }
+      bundle.previous_quaternion_ = rot_quaternion;
+
+      geometry_msgs::PoseWithCovarianceStamped bundle_pose = makeTagPose(transform, rot_quaternion, image->header);
+
+      // Add the detection to the back of the tag detection array
+      AprilTagDetection tag_detection;
+      tag_detection.pose = bundle_pose;
+      tag_detection.id = bundle.masterID();
+      // tag_detection.size = ; // skipped for bundle
+      tag_detection_array.detections.push_back(tag_detection);
+      detection_names.push_back(bundle.name());
+    }
+  }
+
+  // Publish /tf message and debug message (if requested)
+  for (int i=0; i<tag_detection_array.detections.size(); i++) {// print quick-reference debug info about tag detection
+    geometry_msgs::PoseWithCovarianceStamped pose = tag_detection_array.detections[i].pose;
+    
     if (!run_quietly_) {
+      Eigen::Quaternion<double> quat(pose.pose.pose.orientation.w,pose.pose.pose.orientation.x,pose.pose.pose.orientation.y,pose.pose.pose.orientation.z);
+      
       // print tag ID
-      ROS_DEBUG("[tag ID %d]", detection->id);
+      ROS_DEBUG("[%s]", detection_names[i].c_str());
       // print tag translation with respect to camera
-      ROS_DEBUG("x: %.3f y: %.3f z: %.3f",tag_pose.pose.position.x,tag_pose.pose.position.y,tag_pose.pose.position.z);
+      ROS_DEBUG("x: %.3f y: %.3f z: %.3f",pose.pose.pose.position.x,pose.pose.pose.position.y,pose.pose.pose.position.z);
       // print Tait-Bryan angles of tag (1. yaw about z, 2. pitch about y, 3. roll about x)
       double rad2deg = 180.0/M_PI;
-      Eigen::Vector3d eulerAngles = rot.eulerAngles(2,1,0);
+      Eigen::Vector3d eulerAngles = quat.toRotationMatrix().eulerAngles(2,1,0);
       // double phi = atan2(2.0*(rot_quaternion.w()*rot_quaternion.x()+rot_quaternion.y()*rot_quaternion.z()), 1.0-2.0*(rot_quaternion.x()*rot_quaternion.x()+rot_quaternion.y()*rot_quaternion.y()))*rad2deg;
       // double theta = asin(2.0*(rot_quaternion.w()*rot_quaternion.y()-rot_quaternion.z()*rot_quaternion.x()))*rad2deg;
       // double psi = atan2(2.0*(rot_quaternion.w()*rot_quaternion.z()+rot_quaternion.x()*rot_quaternion.y()), 1.0-2.0*(rot_quaternion.y()*rot_quaternion.y()+rot_quaternion.z()*rot_quaternion.z()))*rad2deg;
@@ -228,37 +304,37 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
     // Publish the transform (/tf topic), making visualization in Rviz possible
     if (publish_tf_) {
       tf::Stamped<tf::Transform> tag_transform;
-      tf::poseStampedMsgToTF(tag_pose, tag_transform);
-      tf_pub_.sendTransform(tf::StampedTransform(tag_transform, tag_transform.stamp_, tag_transform.frame_id_, description.frame_name()));
+      tf::poseMsgToTF(pose.pose.pose, tag_transform);
+      tf_pub_.sendTransform(tf::StampedTransform(tag_transform, tag_transform.stamp_, tag_transform.frame_id_, detection_names[i]));
     }
   }
 
   return tag_detection_array;
 }
 
-Eigen::Matrix4d TagDetector::getRelativeTransform(apriltag_detection_t *detection, double tag_size, double fx, double fy, double cx, double cy) const {
-  std::vector<cv::Point3f> objectPoints;
-  std::vector<cv::Point2f> imagePoints;
-  double s = tag_size/2;
+void TagDetector::addObjectPoints(double s, cv::Matx44d T_mi, std::vector<cv::Point3d >& objectPoints) const {
+  // Add to vector the tag corners in the world coordinates (ideal)
+  objectPoints.push_back(T_mi.get_minor<3, 4>(0, 0)*cv::Vec4d(-s,-s, 0, 1));
+  objectPoints.push_back(T_mi.get_minor<3, 4>(0, 0)*cv::Vec4d( s,-s, 0, 1));
+  objectPoints.push_back(T_mi.get_minor<3, 4>(0, 0)*cv::Vec4d( s, s, 0, 1));
+  objectPoints.push_back(T_mi.get_minor<3, 4>(0, 0)*cv::Vec4d(-s, s, 0, 1));
+}
 
-  // set the detected tag's corner coordinates in tag coordinate frame
-  objectPoints.push_back(cv::Point3f(-s,-s, 0));
-  objectPoints.push_back(cv::Point3f( s,-s, 0));
-  objectPoints.push_back(cv::Point3f( s, s, 0));
-  objectPoints.push_back(cv::Point3f(-s, s, 0));
-
-  // set the detected tag's corner coordinates in camera image pixel
+void TagDetector::addImagePoints(apriltag_detection_t *detection, std::vector<cv::Point2d >& imagePoints) const {
+  // Add to vector the detected tag corners (going from bottom left to
+  // top left in counterclockwise fashion) in the image (pixel)
   // coordinates
-  imagePoints.push_back(cv::Point2f(detection->p[0][0], detection->p[0][1]));
-  imagePoints.push_back(cv::Point2f(detection->p[1][0], detection->p[1][1]));
-  imagePoints.push_back(cv::Point2f(detection->p[2][0], detection->p[2][1]));
-  imagePoints.push_back(cv::Point2f(detection->p[3][0], detection->p[3][1]));
+  imagePoints.push_back(cv::Point2d(detection->p[0][0], detection->p[0][1]));
+  imagePoints.push_back(cv::Point2d(detection->p[1][0], detection->p[1][1]));
+  imagePoints.push_back(cv::Point2d(detection->p[2][0], detection->p[2][1]));
+  imagePoints.push_back(cv::Point2d(detection->p[3][0], detection->p[3][1]));
+}
 
+Eigen::Matrix4d TagDetector::getRelativeTransform(std::vector<cv::Point3d > objectPoints, std::vector<cv::Point2d > imagePoints, double fx, double fy, double cx, double cy) const {
   // perform Perspective-n-Point camera pose estimation using the
   // above 3D-2D point correspondences
-  // TODO extend above to N points, rather than the four corners of one tag
   cv::Mat rvec, tvec;
-  cv::Matx33f cameraMatrix(fx,  0, cx,
+  cv::Matx33d cameraMatrix(fx,  0, cx,
                            0,  fy, cy,
                            0,   0,  1);
   cv::Vec4f distCoeffs(0,0,0,0); // distortion coefficients
@@ -274,6 +350,43 @@ Eigen::Matrix4d TagDetector::getRelativeTransform(apriltag_detection_t *detectio
   T.row(3) << 0,0,0,1;
 
   return T;
+}
+
+void TagDetector::flipQuaternion(Eigen::Quaternion<double>& q) {
+  ROS_DEBUG("Quaternion flipped. Switching sign!");
+  q.w() *= -1;
+  q.x() *= -1;
+  q.y() *= -1;
+  q.z() *= -1;
+}
+
+geometry_msgs::PoseWithCovarianceStamped TagDetector::makeTagPose(const Eigen::Matrix4d& transform, const Eigen::Quaternion<double> rot_quaternion, const std_msgs::Header& header, int size_mm) {
+  geometry_msgs::PoseWithCovarianceStamped pose;
+  pose.header = header;
+  ///// Position and orientation
+  pose.pose.pose.position.x    = transform(0, 3);
+  pose.pose.pose.position.y    = transform(1, 3);
+  pose.pose.pose.position.z    = transform(2, 3);
+  pose.pose.pose.orientation.x = rot_quaternion.x();
+  pose.pose.pose.orientation.y = rot_quaternion.y();
+  pose.pose.pose.orientation.z = rot_quaternion.z();
+  pose.pose.pose.orientation.w = rot_quaternion.w();
+  ///// Covariance
+  if (size_mm) {
+    // Compute variance only if the size_mm argument is passed (it defaults to 0, which lets us not compute the
+    // covariance for the tag bundles, for example, for which it's not yet clear how to compute the covariance without
+    // doing testing for every combination of detected tags in the bundle...)
+    double d = std::sqrt(pose.pose.pose.position.x * pose.pose.pose.position.x +
+                         pose.pose.pose.position.y * pose.pose.pose.position.y +
+                         pose.pose.pose.position.z * pose.pose.pose.position.z); // camera-tag distance (estimated by AprilTags...)
+    pose.pose.covariance[x]     = variance_models_[size_mm][x].variance(d);     // translation x
+    pose.pose.covariance[y]     = variance_models_[size_mm][y].variance(d);     // translation y
+    pose.pose.covariance[z]     = variance_models_[size_mm][z].variance(d);     // translation z
+    pose.pose.covariance[psi]   = variance_models_[size_mm][psi].variance(d);   // Tait-Bryan rotation psi (yaw, about z)
+    pose.pose.covariance[theta] = variance_models_[size_mm][theta].variance(d); // Tait-Bryan rotation theta (pitch, about y)
+    pose.pose.covariance[phi]   = variance_models_[size_mm][phi].variance(d);   // Tait-Bryan rotation phi (roll, about x)
+  }
+  return pose;
 }
 
 void TagDetector::draw_detections(cv_bridge::CvImagePtr image) {
@@ -310,15 +423,15 @@ void TagDetector::draw_detections(cv_bridge::CvImagePtr image) {
   }
 }
 
-// based on tag descriptions stored on the ROS parameter server, return a map from tag ID to its description
-std::map<int, TagDescription> TagDetector::parse_tag_descriptions(XmlRpc::XmlRpcValue& tag_descriptions) {
-  std::map<int, TagDescription> descriptions; // create map that will be filled by the function and returned in the end
-  ROS_ASSERT(tag_descriptions.getType() == XmlRpc::XmlRpcValue::TypeArray); // ensure the type is correct
-  for (int32_t i = 0; i < tag_descriptions.size(); i++) { // loop through all tag descriptions
+// Parse standalone tag descriptions
+std::map<int, StandaloneTagDescription> TagDetector::parse_standalone_tags(XmlRpc::XmlRpcValue& standalone_tags) {
+  std::map<int, StandaloneTagDescription> descriptions; // create map that will be filled by the function and returned in the end
+  ROS_ASSERT(standalone_tags.getType() == XmlRpc::XmlRpcValue::TypeArray); // ensure the type is correct
+  for (int32_t i = 0; i < standalone_tags.size(); i++) { // loop through all tag descriptions
 
-    XmlRpc::XmlRpcValue& tag_description = tag_descriptions[i]; // i-th tag description
+    XmlRpc::XmlRpcValue& tag_description = standalone_tags[i]; // i-th tag description
 
-    ROS_ASSERT(tag_description.getType() == XmlRpc::XmlRpcValue::TypeStruct); // asser the tag description is a struct
+    ROS_ASSERT(tag_description.getType() == XmlRpc::XmlRpcValue::TypeStruct); // assert the tag description is a struct
     ROS_ASSERT(tag_description["id"].getType() == XmlRpc::XmlRpcValue::TypeInt); // assert type of field "id" is an int
     ROS_ASSERT(tag_description["size"].getType() == XmlRpc::XmlRpcValue::TypeDouble); // assert type of field "size" is a double
 
@@ -326,21 +439,171 @@ std::map<int, TagDescription> TagDetector::parse_tag_descriptions(XmlRpc::XmlRpc
     double size = (double)tag_description["size"]; // tag size (square, side length in meters)
 
     std::string frame_name;
-    if(tag_description.hasMember("frame_id")) { // custom frame name, if such a field exists for this tag
-      ROS_ASSERT(tag_description["frame_id"].getType() == XmlRpc::XmlRpcValue::TypeString); // asser type of field "frame_id" is a string
-      frame_name = (std::string)tag_description["frame_id"];
+    if(tag_description.hasMember("name")) { // custom frame name, if such a field exists for this tag
+      ROS_ASSERT(tag_description["name"].getType() == XmlRpc::XmlRpcValue::TypeString); // asser type of field "name" is a string
+      frame_name = (std::string)tag_description["name"];
     } else {
       std::stringstream frame_name_stream;
       frame_name_stream << "tag_" << id;
       frame_name = frame_name_stream.str();
     }
 
-    TagDescription description(id, size, frame_name);
+    StandaloneTagDescription description(id, size, frame_name);
     ROS_INFO_STREAM("Loaded tag config: " << id << ", size: " << size << ", frame_name: " << frame_name.c_str());
     descriptions.insert(std::make_pair(id, description)); // add this tag's description to map of descriptions
   }
 
   return descriptions;
+}
+
+// parse tag bundle descriptions
+std::vector<TagBundleDescription > TagDetector::parse_tag_bundles(XmlRpc::XmlRpcValue& tag_bundles) {
+  std::vector<TagBundleDescription > descriptions;
+  ROS_ASSERT(tag_bundles.getType() == XmlRpc::XmlRpcValue::TypeArray);
+
+  for (int32_t i=0; i<tag_bundles.size(); i++) { // loop through all tag bundle descritions
+
+    ROS_ASSERT(tag_bundles[i].getType() == XmlRpc::XmlRpcValue::TypeStruct);
+    XmlRpc::XmlRpcValue& bundle_description = tag_bundles[i]; // i-th tag bundle description
+
+    std::string bundleName;
+    if (bundle_description.hasMember("name")) {
+      ROS_ASSERT(bundle_description["name"].getType() == XmlRpc::XmlRpcValue::TypeString);
+      bundleName = (std::string)bundle_description["name"];
+    } else {
+      std::stringstream bundle_name_stream;
+      bundle_name_stream << "bundle_" << i;
+      bundleName = bundle_name_stream.str();
+    }
+    TagBundleDescription bundle_i(bundleName);
+    ROS_INFO("Loading tag bundle '%s'",bundle_i.name().c_str());
+    
+    ROS_ASSERT(bundle_description["layout"].getType() == XmlRpc::XmlRpcValue::TypeArray);
+    XmlRpc::XmlRpcValue& member_tags = bundle_description["layout"];
+
+    for (int32_t j=0; j<member_tags.size(); j++) { // loop through each member tag of the bundle
+      
+      ROS_ASSERT(member_tags[j].getType() == XmlRpc::XmlRpcValue::TypeStruct);
+      XmlRpc::XmlRpcValue& tag = member_tags[j];
+
+      ROS_ASSERT(tag["id"].getType() == XmlRpc::XmlRpcValue::TypeInt);
+      int id = tag["id"];
+
+      ROS_ASSERT(tag["size"].getType() == XmlRpc::XmlRpcValue::TypeDouble);
+      double size = tag["size"];
+
+      // Make sure that if this tag was specified also as standalone,
+      // then the sizes match
+      StandaloneTagDescription* standaloneDescription;
+      if (findStandaloneTagDescription(id, standaloneDescription, false))
+        ROS_ASSERT(size == standaloneDescription->size());
+      
+      // Get this tag's transform wrt master
+      double x, y, z;
+      if (j != 0) {
+        x = XmlRpcGetDouble(tag, "x");
+        y = XmlRpcGetDouble(tag, "y");
+        z = XmlRpcGetDouble(tag, "z");
+      } else {
+        // First tag specified in the bundle is the master tag... it
+        // has zero translation with respect to itself...  If user
+        // forgets this fact and specifies x, y, z values for the tag
+        // anyway, throw an error
+        ROS_ASSERT(!tag.hasMember("x"));
+        ROS_ASSERT(!tag.hasMember("y"));
+        ROS_ASSERT(!tag.hasMember("z"));
+        
+        x = 0.;
+        y = 0.;
+        z = 0.;
+      }
+
+      // Build the rigid transform from tag_j to the master tag
+      cv::Matx44d T_mj = cv::Matx44d::eye();
+      T_mj.col(3).row(0) = x;
+      T_mj.col(3).row(1) = y;
+      T_mj.col(3).row(2) = z;
+
+      // Register the tag member
+      bundle_i.addMemberTag(id, size, T_mj);
+      std::string tagClass = (j==0) ? "[master] " : "         ";
+      ROS_INFO_STREAM(" " << j << ") " << tagClass << "Loaded tag id: " << id << ", size: " << size << ", x: " << x << ", y: " << y << ", z: " << z);
+      
+    }
+    descriptions.push_back(bundle_i);
+  }
+  return descriptions;
+}
+
+double TagDetector::XmlRpcGetDouble(XmlRpc::XmlRpcValue& xmlValue, std::string field) const {
+  ROS_ASSERT((xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeDouble) ||
+             (xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeInt));
+  if (xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeInt) {
+    int tmp = xmlValue[field];
+    return (double)tmp;
+  } else {
+    return xmlValue[field];
+  }
+}
+
+bool TagDetector::findStandaloneTagDescription(int id, StandaloneTagDescription*& descriptionContainer, bool printWarning) {
+  std::map<int, StandaloneTagDescription>::iterator description_itr = standalone_tag_descriptions_.find(id);
+  if (description_itr == standalone_tag_descriptions_.end()) {
+    if (printWarning)
+      ROS_WARN_THROTTLE(10.0, "Requested description of standalone tag ID [%d], but no description was found...",id);
+    return false;
+  }
+  descriptionContainer = &(description_itr->second);
+  return true;
+}
+
+void TagDetector::setupVarianceModels() {
+  /////////// Setup variance models
+  // Note 1: x, y, z in meters and psi, theta, phi in radians
+  // Note 2: we enter coefficients for the **standard deviation** model, which are internally converted to variance
+  //         by the VarianceModel class
+  // 50mm tag
+  variance_models_[50][x]      = VarianceModel(  0.0000979689 ,  0.0040006819 );
+  variance_models_[50][y]      = VarianceModel(  0.0000537096 ,  0.0028771067 );
+  variance_models_[50][z]      = VarianceModel( -0.0000277909 ,  0.0023923314 );
+  variance_models_[50][psi]    = VarianceModel(  0.0000961662 ,  0.0234069470 );
+  variance_models_[50][theta]  = VarianceModel( -0.0094082211 ,  0.1181870547 );
+  variance_models_[50][phi]    = VarianceModel( -0.0122188194 ,  0.1238456932 );
+  // 75mm tag
+  variance_models_[75][x]      = VarianceModel( -0.0007500138 ,  0.0061656682 );
+  variance_models_[75][y]      = VarianceModel(  0.0003249051 ,  0.0031488829 );
+  variance_models_[75][z]      = VarianceModel( -0.0003692786 ,  0.0029935785 );
+  variance_models_[75][psi]    = VarianceModel( -0.0018287831 ,  0.0248597919 );
+  variance_models_[75][theta]  = VarianceModel( -0.0186382328 ,  0.1204987770 );
+  variance_models_[75][phi]    = VarianceModel( -0.0183603953 ,  0.1180110859 );
+  // 100mm tag
+  variance_models_[100][x]     = VarianceModel( -0.0010707817 ,  0.0054477370 );
+  variance_models_[100][y]     = VarianceModel( -0.0012293576 ,  0.0053599384 );
+  variance_models_[100][z]     = VarianceModel( -0.0011488022 ,  0.0035798504 );
+  variance_models_[100][psi]   = VarianceModel( -0.0009994809 ,  0.0182365331 );
+  variance_models_[100][theta] = VarianceModel( -0.0458918748 ,  0.1182794903 );
+  variance_models_[100][phi]   = VarianceModel( -0.0470683840 ,  0.1223757530 );
+  // 180mm tag
+  variance_models_[180][x]     = VarianceModel( -0.0010642714 ,  0.0056855851 );
+  variance_models_[180][y]     = VarianceModel( -0.0020237825 ,  0.0061189816 );
+  variance_models_[180][z]     = VarianceModel( -0.0005921215 ,  0.0019705435 );
+  variance_models_[180][psi]   = VarianceModel(  0.0049294555 ,  0.0054276459 );
+  variance_models_[180][theta] = VarianceModel(  0.0001791223 ,  0.0343592852 );
+  variance_models_[180][phi]   = VarianceModel( -0.0008516336 ,  0.0363813023 );
+  // 250mm tag
+  variance_models_[250][x]     = VarianceModel( -0.0003442761 ,  0.0049214433 );
+  variance_models_[250][y]     = VarianceModel( -0.0022600669 ,  0.0057952847 );
+  variance_models_[250][z]     = VarianceModel( -0.0006121147 ,  0.0013706646 );
+  variance_models_[250][psi]   = VarianceModel(  0.0049397108 ,  0.0075631516 );
+  variance_models_[250][theta] = VarianceModel( -0.0079414578 ,  0.0495761328 );
+  variance_models_[250][phi]   = VarianceModel( -0.0028767380 ,  0.0412820665 );
+  // 400mm tag
+  variance_models_[400][x]     = VarianceModel( -0.0002295080 ,  0.0046010060 );
+  variance_models_[400][y]     = VarianceModel( -0.0025213187 ,  0.0065217905 );
+  variance_models_[400][z]     = VarianceModel( -0.0009346325 ,  0.0019769957 );
+  variance_models_[400][psi]   = VarianceModel(  0.0063640405 ,  0.0039516252 );
+  variance_models_[400][theta] = VarianceModel(  0.0361821896 ,  0.0273991337 );
+  variance_models_[400][phi]   = VarianceModel(  0.0308802099 ,  0.0249896997 );
 }
 
 }

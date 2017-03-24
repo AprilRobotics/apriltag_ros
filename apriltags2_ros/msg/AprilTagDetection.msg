@@ -1,3 +1,3 @@
 int32 id
 float64 size
-geometry_msgs/PoseStamped pose
+geometry_msgs/PoseWithCovarianceStamped pose
