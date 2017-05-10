@@ -60,7 +60,7 @@ struct VarianceModel {
 struct TagBundleMember {
   int id; // Payload ID
   double size; // [m] Side length
-  cv::Matx44d T_mi; // Rigid transform this tag's frame --> master tag's frame
+  cv::Matx44d T_oi; // Rigid transform from tag i frame to bundle origin frame
 };
 
 class StandaloneTagDescription {
@@ -90,20 +90,35 @@ class TagBundleDescription {
 
   TagBundleDescription(std::string name) : name_(name), previous_quaternion_(0., 0., 0., 0.) {}
 
-  void addMemberTag(int id, double size, cv::Matx44d T_mi) {
+  void addMemberTag(int id, double size, cv::Matx44d T_oi) {
     TagBundleMember member;
     member.id = id;
     member.size = size;
-    member.T_mi = T_mi;
+    member.T_oi = T_oi;
     tags_.push_back(member);
     id2idx_[id] = tags_.size()-1;
   }
 
   std::string name () const { return name_; }
-  int masterID () { return tags_[0].id; }
+  // Get IDs of bundle member tags
+  std::vector<int> bundle_ids () {
+    std::vector<int> ids;
+    for (int i = 0; i < tags_.size(); i++) {
+      ids.push_back(tags_[i].id);
+    }
+    return ids;
+  }
+  // Get sizes of bundle member tags
+  std::vector<double> bundle_sizes () {
+    std::vector<double> sizes;
+    for (int i = 0; i < tags_.size(); i++) {
+      sizes.push_back(tags_[i].size);
+    }
+    return sizes;
+  }
   int memberID (int tagID) { return tags_[id2idx_[tagID]].id; }
   double memberSize (int tagID) { return tags_[id2idx_[tagID]].size; }
-  cv::Matx44d memberT_mi (int tagID) { return tags_[id2idx_[tagID]].T_mi; }
+  cv::Matx44d memberT_oi (int tagID) { return tags_[id2idx_[tagID]].T_oi; }
 
  private:
   // Bundle description
@@ -155,6 +170,7 @@ class TagDetector {
   std::map<int, StandaloneTagDescription> parse_standalone_tags(XmlRpc::XmlRpcValue& standalone_tag_descriptions);
   std::vector<TagBundleDescription > parse_tag_bundles(XmlRpc::XmlRpcValue& tag_bundles);
   double XmlRpcGetDouble(XmlRpc::XmlRpcValue& xmlValue, std::string field) const;
+  double XmlRpcGetDoubleWithDefault(XmlRpc::XmlRpcValue& xmlValue, std::string field, double defaultValue) const;
 
   bool findStandaloneTagDescription(int id, StandaloneTagDescription*& descriptionContainer, bool printWarning = true);
 
@@ -174,7 +190,7 @@ class TagDetector {
   // expressed in the camera frame.
   Eigen::Matrix4d getRelativeTransform(std::vector<cv::Point3d > objectPoints, std::vector<cv::Point2d > imagePoints, double fx, double fy, double cx, double cy) const;
   void addImagePoints(apriltag_detection_t *detection, std::vector<cv::Point2d >& imagePoints) const;
-  void addObjectPoints(double s, cv::Matx44d T_mi, std::vector<cv::Point3d >& objectPoints) const;
+  void addObjectPoints(double s, cv::Matx44d T_oi, std::vector<cv::Point3d >& objectPoints) const;
 
   // Draw the detected tags' outlines and payload values on the image
   void draw_detections(cv_bridge::CvImagePtr image);

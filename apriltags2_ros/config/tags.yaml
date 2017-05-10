@@ -1,0 +1,41 @@
+# Definitions of tags to detect
+# Standalone tag definitions
+standalone_tags:
+  [
+    {id: 9, size: 0.075},
+    {id: 0, size: 0.18},
+    {id: 4, size: 0.18},
+    {id: 13, size: 0.18},
+    {id: 2, size: 0.18}
+  ]
+# Tag bundle definitions
+tag_bundles:
+  [
+    # Bundle 1
+    {
+      name: 'landing_bundle',
+      layout:
+        [
+          # Format:
+          # {id: <int>, size: <double>, x: <double>, y: <double>, z: <double>,
+          #  qw: <double>, qx: <double>, qy: <double< qz: <double>}
+          {id: 9, size: 0.075, x: 0., y: 0., z: 0.},
+          {id: 0, size: 0.18, x: -0.3025, y: -0.3025, z: 0},
+          {id: 4, size: 0.18, x: 0.3025, y: -0.3025, z: 0},
+          {id: 13, size: 0.18, x: 0.3025, y: 0.3025, z: 0},
+          {id: 2, size: 0.18, x: -0.3025, y: 0.3025, z: 0}
+        ]
+    },
+    # Bundle 2
+    {
+      # name: 'landing_bundle',
+      layout:
+        [
+          {id: 9, size: 0.075, x: 0., y: 0., z: 0.},
+          {id: 0, size: 0.18, x: -0.3025, y: -0.3025, z: 0},
+          {id: 4, size: 0.18, x: 0.3025, y: -0.3025, z: 0},
+          {id: 13, size: 0.18, x: 0.3025, y: 0.3025, z: 0},
+          {id: 2, size: 0.18, x: -0.3025, y: 0.3025, z: 0}
+        ]
+    }
+  ]

@@ -1,0 +1,3 @@
+# JetBrains CLion ignores
+.idea/
+cmake-build-debug/

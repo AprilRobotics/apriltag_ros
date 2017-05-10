@@ -2,47 +2,9 @@
   
   <!-- Parameters common to the continuous and single image nodes -->
   <param name="publish_tf"       type="bool"   value="true" />      <!-- default: false -->
-  <param name="run_quietly"      type="bool"   value="false" />      <!-- default: true -->
   <param name="projected_optics" type="bool"   value="true" />      <!-- default: true (enables projected optical measurements for more accurate tag transformations) -->
 
-  <!-- Describe standalone tags ({id: <id>, size: <side_length_m>, name: '<frame_name>'}) -->
-  <rosparam param="standalone_tags" subst_value="true">
-    [
-      {id: 9, size: 0.075},
-      {id: 0, size: 0.18},
-      {id: 4, size: 0.18},
-      {id: 13, size: 0.18},
-      {id: 2, size: 0.18}
-    ]
-  </rosparam>
-
-  <!-- Describe tag bundle (first tag in list is the master) -->
-  <!-- {id: <id>, size: <side_length_m>, x: <x_pos_wrt_master_m>, y: <x_pos_wrt_master_m>, z: <x_pos_wrt_master_m>} -->
-  <rosparam param="tag_bundles" subst_value="true">
-    [
-      {
-        name: 'landing_bundle',
-        layout:
-        [
-          {id: 9, size: 0.075}, <!--master-->
-          {id: 0, size: 0.18, x: -0.3025, y: -0.3025, z: 0},
-          {id: 4, size: 0.18, x: 0.3025, y: -0.3025, z: 0},
-          {id: 13, size: 0.18, x: 0.3025, y: 0.3025, z: 0},
-          {id: 2, size: 0.18, x: -0.3025, y: 0.3025, z: 0}
-        ]
-      },
-      {
-        <!-- name: 'landing_bundle', -->
-        layout:
-        [
-          {id: 9, size: 0.075}, <!--master-->
-          {id: 0, size: 0.18, x: -0.3025, y: -0.3025, z: 0},
-          {id: 4, size: 0.18, x: 0.3025, y: -0.3025, z: 0},
-          {id: 13, size: 0.18, x: 0.3025, y: 0.3025, z: 0},
-          {id: 2, size: 0.18, x: -0.3025, y: 0.3025, z: 0}
-        ]
-      }
-    ]
-  </rosparam>
+  <!-- Load standalone and bundle tag descriptions -->
+  <rosparam command="load" file="$(find apriltags2_ros)/config/tags.yaml" />
 
 </launch>
