@@ -6,11 +6,15 @@
 # - Ellipsis (...) signifies that the previous element can be repeated multiple times.
 #
 # ## Standalone tag definitions
+# ### Remarks
+#
+# - name is optional
+#
 # ### Syntax
 #
 # standalone_tags:
 #   [
-#     {id: ID, size: SIZE},
+#     {id: ID, size: SIZE, name: NAME},
 #     ...
 #   ]
 standalone_tags:
@@ -19,7 +23,7 @@ standalone_tags:
 # ## Tag bundle definitions
 # ### Remarks
 #
-# - name field is optional
+# - name is optional
 # - x, y, z have default values of 0 thus they are optional
 # - qw has default value of 1 and qx, qy, qz have default values of 0 thus they are optional
 #

@@ -38,10 +38,6 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(apriltag_getopt<std::str
     }
   }
 
-  // Get frame which the sensor (camera) data is associated with
-  if(!pnh.getParam("sensor_frame_id", sensor_frame_id_))
-    sensor_frame_id_ = "";
-
   // Get whether to use the P matrix (Projection/camera matrix) or K matrix (Intrinsic camera matrix) of sensor_msgs/CameraInfo message
   // true selects the P matrix (the recommended choice)
   projected_optics_ = apriltag_getopt<bool>(pnh, "projected_optics", true);
@@ -110,10 +106,6 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
                                   .stride = gray_image.cols,
                                   .buf = gray_image.data
   };
-
-  // Set the camera frame name
-  if (!sensor_frame_id_.empty())
-    image->header.frame_id = sensor_frame_id_;
 
   // Get camera intrinsic properties
   double fx; // focal length in camera x-direction (in pixels)
@@ -266,14 +258,13 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
     }
   }
 
-  // If requested, publish the transform (/tf topic), making visualization in
-  // Rviz possible
+  // If set, publish the transform /tf topic
   if (publish_tf_) {
     for (int i=0; i<tag_detection_array.detections.size(); i++) {
       geometry_msgs::PoseWithCovarianceStamped pose = tag_detection_array.detections[i].pose;
       tf::Stamped<tf::Transform> tag_transform;
       tf::poseMsgToTF(pose.pose.pose, tag_transform);
-      tf_pub_.sendTransform(tf::StampedTransform(tag_transform, tag_transform.stamp_, tag_transform.frame_id_, detection_names[i]));
+      tf_pub_.sendTransform(tf::StampedTransform(tag_transform, tag_transform.stamp_, "camera", detection_names[i]));
     }
   }
 
@@ -408,7 +399,7 @@ std::map<int, StandaloneTagDescription> TagDetector::parse_standalone_tags(XmlRp
 
     std::string frame_name;
     if(tag_description.hasMember("name")) { // custom frame name, if such a field exists for this tag
-      ROS_ASSERT(tag_description["name"].getType() == XmlRpc::XmlRpcValue::TypeString); // asser type of field "name" is a string
+      ROS_ASSERT(tag_description["name"].getType() == XmlRpc::XmlRpcValue::TypeString); // assert type of field "name" is a string
       frame_name = (std::string)tag_description["name"];
     } else {
       std::stringstream frame_name_stream;
