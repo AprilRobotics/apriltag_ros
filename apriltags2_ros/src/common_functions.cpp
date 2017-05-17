@@ -261,9 +261,11 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
   // If set, publish the transform /tf topic
   if (publish_tf_) {
     for (int i=0; i<tag_detection_array.detections.size(); i++) {
-      geometry_msgs::PoseWithCovarianceStamped pose = tag_detection_array.detections[i].pose;
+      geometry_msgs::PoseStamped pose;
+      pose.pose = tag_detection_array.detections[i].pose.pose.pose;
+      pose.header = tag_detection_array.detections[i].pose.header;
       tf::Stamped<tf::Transform> tag_transform;
-      tf::poseMsgToTF(pose.pose.pose, tag_transform);
+      tf::poseStampedMsgToTF(pose, tag_transform);
       tf_pub_.sendTransform(tf::StampedTransform(tag_transform, tag_transform.stamp_, "camera", detection_names[i]));
     }
   }
