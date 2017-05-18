@@ -44,7 +44,7 @@ standalone_tags:
 tag_bundles:
   [
     {
-      name: 'landing_test_bundle',
+      name: 'charging_pad',
       layout:
         [
           {id: 9,  size: 0.1},
