@@ -296,7 +296,7 @@ void TagDetector::removeDuplicates()
   bool duplicate_detected = false;
   while (true)
   {
-    if (count == zarray_size(detections_)-1)
+    if (count >= zarray_size(detections_)-1)
     {
       break;
     }
