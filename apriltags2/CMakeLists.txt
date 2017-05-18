@@ -20,10 +20,36 @@ include_directories(
 )
 
 add_library(apriltags2
-  src/apriltag.c src/apriltag_quad_thresh.c src/g2d.c src/getopt.c src/homography.c src/image_f32.c src/image_u8.c src/image_u8x3.c src/image_u8x4.c src/matd.c src/pam.c src/pjpeg.c src/pjpeg-idct.c src/pnm.c src/string_util.c src/svd22.c src/tag16h5.c src/tag25h7.c src/tag25h9.c src/tag36artoolkit.c src/tag36h10.c src/tag36h11.c src/time_util.c src/unionfind.c src/workerpool.c src/zarray.c src/zhash.c src/zmaxheap.c
-)
+  src/apriltag.c
+  src/apriltag_quad_thresh.c
+  src/g2d.c
+  src/getopt.c
+  src/homography.c
+  src/image_f32.c
+  src/image_u8.c
+  src/image_u8x3.c
+  src/image_u8x4.c
+  src/matd.c
+  src/pam.c
+  src/pjpeg.c
+  src/pjpeg-idct.c
+  src/pnm.c
+  src/string_util.c
+  src/svd22.c
+  src/tag16h5.c
+  src/tag25h7.c
+  src/tag25h9.c
+  src/tag36artoolkit.c
+  src/tag36h10.c
+  src/tag36h11.c
+  src/time_util.c
+  src/unionfind.c
+  src/workerpool.c
+  src/zarray.c
+  src/zhash.c
+  src/zmaxheap.c)
 target_link_libraries(apriltags2
-  ${catkin_LIBRARIES}
+ ${catkin_LIBRARIES}
 )
 
 #############

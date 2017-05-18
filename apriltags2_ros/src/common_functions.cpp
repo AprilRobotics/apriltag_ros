@@ -131,6 +131,10 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
   // Run AprilTags 2 algorithm on the image
   detections_ = apriltag_detector_detect(td_, &apriltags2_image);
 
+  // Restriction: any tag ID can appear at most once in the scene.
+  // Thus, get all the tags visible in the scene and remove any tags with IDs of which there are multiple in the scene
+  removeDuplicates();
+
   // Compute the estimated translation and rotation individually for each detected tag
   AprilTagDetectionArray tag_detection_array;
   std::vector<std::string > detection_names;
@@ -149,12 +153,14 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
     // Don't yet run cv::solvePnP on the bundles, though, since we're still in
     // the process of collecting all the object-image corresponding points
     int tagID = detection->id;
+    bool is_part_of_bundle = false;
     for (int j=0; j<tag_bundle_descriptions_.size(); j++) {
       // Iterate over the registered bundles
       TagBundleDescription bundle = tag_bundle_descriptions_[j];
       
       if (bundle.id2idx_.find(tagID) != bundle.id2idx_.end()) {
         // This detected tag belongs to the j-th tag bundle (its ID was found in the bundle description)
+        is_part_of_bundle = true;
         std::string bundleName = bundle.name();
 
         //===== Corner points in the world frame coordinates
@@ -167,8 +173,11 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
     }
 
     // Find this tag's description amongst the standalone tags
+    // Print warning when a tag was found that is neither part of a bundle nor standalone (thus it is a tag in the
+    // environment which the user specified no description for, or Apriltags misdetected a tag (bad ID or a false
+    // positive)).
     StandaloneTagDescription* standaloneDescription;
-    if (!findStandaloneTagDescription(tagID, standaloneDescription))
+    if (!findStandaloneTagDescription(tagID, standaloneDescription, !is_part_of_bundle))
       continue;
 
     //=================================================================
@@ -271,6 +280,40 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
   }
 
   return tag_detection_array;
+}
+
+int TagDetector::idComparison(const void* first, const void* second)
+{
+  int id1 = ((apriltag_detection_t*) first)->id;
+  int id2 = ((apriltag_detection_t*) second)->id;
+  return (id1 < id2) ? -1 : ((id1 == id2) ? 0 : 1);
+}
+
+void TagDetector::removeDuplicates()
+{
+  zarray_sort(detections_, &idComparison);
+  int count = 0;
+  while (true)
+  {
+    if (count == zarray_size(detections_))
+    {
+      break;
+    }
+    apriltag_detection_t *detection;
+    zarray_get(detections_, count, &detection);
+    int id_current = detection->id;
+    zarray_get(detections_, count+1, &detection);
+    int id_next = detection->id;
+    if (id_current == id_next)
+    {
+      // Duplicates, remove the "next" element
+      ROS_WARN_STREAM("Pruning tag with ID " << id_current << " because this ID appears more than once in the image.");
+      int shuffle = 0;
+      zarray_remove_index(detections_, count, shuffle);
+      continue;
+    }
+    count++;
+  }
 }
 
 void TagDetector::addObjectPoints(double s, cv::Matx44d T_oi, std::vector<cv::Point3d >& objectPoints) const {

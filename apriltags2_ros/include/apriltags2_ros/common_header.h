@@ -136,6 +136,12 @@ class TagDetector {
   std::map<int, std::map<PoseVariable, VarianceModel > > variance_models_; // map of (tag size [mm], PoseVariable) --> VarianceModel
   void setupVarianceModels();
 
+  // Detections sorting
+  static int idComparison(const void* first, const void* second);
+
+  // Remove detections of tags with the same ID
+  void removeDuplicates();
+
   // AprilTags 2 code's attributes
   std::string family_;
   int border_;
