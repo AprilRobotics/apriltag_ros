@@ -293,6 +293,7 @@ void TagDetector::removeDuplicates()
 {
   zarray_sort(detections_, &idComparison);
   int count = 0;
+  bool duplicate_detected = false;
   while (true)
   {
     if (count == zarray_size(detections_)-1)
@@ -304,12 +305,17 @@ void TagDetector::removeDuplicates()
     int id_current = detection->id;
     zarray_get(detections_, count+1, &detection);
     int id_next = detection->id;
-    if (id_current == id_next)
+    if (id_current == id_next || (id_current != id_next && duplicate_detected))
     {
-      // Duplicates, remove the "next" element
-      ROS_WARN_STREAM("Pruning tag with ID " << id_current << " because this ID appears more than once in the image.");
+      duplicate_detected = true;
+      // Remove the current tag detection from detections array
       int shuffle = 0;
       zarray_remove_index(detections_, count, shuffle);
+      if (id_current != id_next)
+      {
+        ROS_WARN_STREAM("Pruning tag with ID " << id_current << " because this ID appears more than once in the image.");
+        duplicate_detected = false; // Reset
+      }
       continue;
     }
     count++;
