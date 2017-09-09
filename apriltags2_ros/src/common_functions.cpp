@@ -1,3 +1,5 @@
+#undef NDEBUG
+
 #include <apriltags2_ros/common_header.h>
 
 namespace apriltags2_ros {

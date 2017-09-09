@@ -17,6 +17,33 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen REQUIRED)
 find_package(OpenCV REQUIRED)
 
+# Set the build type.  Options are:
+#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
+#  Debug          : w/ debug symbols, w/o optimization
+#  Release        : w/o debug symbols, w/ optimization
+#  RelWithDebInfo : w/ debug symbols, w/ optimization
+#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
+
+##set(ROS_BUILD_TYPE Coverage)
+set(ROS_BUILD_TYPE Release)
+
+#set the default path for built executables to the "bin" directory
+#set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+#set the default path for built libraries to the "lib" directory
+#set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+
+add_definitions (-Wall -O3)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -funsafe-loop-optimizations -fsee -funroll-loops -fno-math-errno -funsafe-math-optimizations -ffinite-math-only -fno-signed-zeros ")
+
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64 OR x86_32)
+  message("enabling msse2 for x86_64 or x86_32 architecture")
+  #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -msse2 ")
+endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64 OR x86_32)
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm)
+  message("enabling -mfpu=neon -mfloat-abi=softfp for ARM architecture")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mtune=cortex-a9 -mvectorize-with-neon-quad -ffast-math ")
+endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm)
+
 add_message_files(
   FILES
   AprilTagDetectionArray.msg
