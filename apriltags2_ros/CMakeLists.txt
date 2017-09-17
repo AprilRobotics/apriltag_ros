@@ -24,8 +24,8 @@ find_package(OpenCV REQUIRED)
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 
-##set(ROS_BUILD_TYPE Coverage)
-set(ROS_BUILD_TYPE Release)
+##set(CMAKE_BUILD_TYPE Coverage)
+set(CMAKE_BUILD_TYPE Release)
 
 #set the default path for built executables to the "bin" directory
 #set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
