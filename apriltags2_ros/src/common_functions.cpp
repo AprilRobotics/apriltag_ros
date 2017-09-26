@@ -338,17 +338,22 @@ void TagDetector::addImagePoints(apriltag_detection_t *detection, std::vector<cv
   // Add to vector the detected tag corners (going from bottom left to
   // top left in counterclockwise fashion) in the image (pixel)
   // coordinates
+  //
+  // NB: AprilTags 2 core algorithm lays a coordinate frame over the tag such
+  // that, looking directly at the tag, x is right and y is down (i.e. a frame
+  // aligned with the top-left-corner x right, y down image frame). We however
+  // use the tag frame x is right and y is UP. This, the +/- in tag_x and tag_y
+  // get shifted around to reconcile the core algorithm's tag frame with our
+  // tag frame such that, in our frame, the tag corners are ordered from
+  // bottom left to top left going counterclockwise.
   double tag_x[4] = {-1,1,1,-1};
-  double tag_y[4] = {-1,-1,1,1};
-//  ROS_INFO_STREAM("Tag " << detection->id);
+  double tag_y[4] = {1,1,-1,-1};
   for (int i=0; i<4; i++)
   {
     // Homography projection taking tag coordinates to pixels
     double im_x, im_y;
     homography_project(detection->H, tag_x[i], tag_y[i], &im_x, &im_y);
     imagePoints.push_back(cv::Point2d(im_x, im_y));
-//    ROS_INFO_STREAM("Homography corner " << i << " = (" << im_x << " , " << im_y << ")");
-//    ROS_INFO_STREAM("p corner " << i << " = (" << detection->p[i][0] << " , " << detection->p[i][1] << ")");
   }
 }
 
@@ -370,12 +375,6 @@ Eigen::Matrix4d TagDetector::getRelativeTransform(std::vector<cv::Point3d > obje
   T.topLeftCorner(3, 3) = wRo;
   T.col(3).head(3) << tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2);
   T.row(3) << 0,0,0,1;
-
-//  double pad_z = tvec.at<double>(2);
-//  if (pad_z < 0)
-//  {
-//    ROS_ERROR_STREAM("Detection anomaly!");
-//  }
 
   return T;
 }
@@ -543,11 +542,6 @@ std::vector<TagBundleDescription > TagDetector::parse_tag_bundles(XmlRpc::XmlRpc
                        R_oi(1,0), R_oi(1,1), R_oi(1,2), y,
                        R_oi(2,0), R_oi(2,1), R_oi(2,2), z,
                        0,         0,         0,         1);
-      ROS_INFO_STREAM("T_m" << id << " =\n"
-                            << T_mj(0,0) << " " << T_mj(0,1) << " " << T_mj(0,2) << " " << T_mj(0,3) << "\n"
-                            << T_mj(1,0) << " " << T_mj(1,1) << " " << T_mj(1,2) << " " << T_mj(1,3) << "\n"
-                            << T_mj(2,0) << " " << T_mj(2,1) << " " << T_mj(2,2) << " " << T_mj(2,3) << "\n"
-                            << T_mj(3,0) << " " << T_mj(3,1) << " " << T_mj(3,2) << " " << T_mj(3,3));
 
       // Register the tag member
       bundle_i.addMemberTag(id, size, T_mj);
