@@ -143,6 +143,7 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
   tag_detection_array.header = image->header;
   std::map<std::string, std::vector<cv::Point3d > > bundleObjectPoints;
   std::map<std::string, std::vector<cv::Point2d > > bundleImagePoints;
+//  ROS_INFO_STREAM("===============");
   for (int i=0; i < zarray_size(detections_); i++) {
 
     // Get the i-th detected tag
@@ -159,11 +160,13 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
     for (int j=0; j<tag_bundle_descriptions_.size(); j++) {
       // Iterate over the registered bundles
       TagBundleDescription bundle = tag_bundle_descriptions_[j];
-      
+
       if (bundle.id2idx_.find(tagID) != bundle.id2idx_.end()) {
         // This detected tag belongs to the j-th tag bundle (its ID was found in the bundle description)
         is_part_of_bundle = true;
         std::string bundleName = bundle.name();
+
+//        ROS_INFO_STREAM("Found tagID " << tagID);
 
         //===== Corner points in the world frame coordinates
         double s = bundle.memberSize(tagID)/2;
@@ -251,7 +254,6 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
 
       // If the dot product is negative, the quaternions have opposite
       // handed-ness, Fix by reversing one quaternion.
-      // TODO somehow this does not seem to work??
       if (rot_quaternion.dot(bundle.previous_quaternion_) < 0.0f) {
         flipQuaternion(rot_quaternion);
       }
@@ -336,10 +338,18 @@ void TagDetector::addImagePoints(apriltag_detection_t *detection, std::vector<cv
   // Add to vector the detected tag corners (going from bottom left to
   // top left in counterclockwise fashion) in the image (pixel)
   // coordinates
-  imagePoints.push_back(cv::Point2d(detection->p[0][0], detection->p[0][1]));
-  imagePoints.push_back(cv::Point2d(detection->p[1][0], detection->p[1][1]));
-  imagePoints.push_back(cv::Point2d(detection->p[2][0], detection->p[2][1]));
-  imagePoints.push_back(cv::Point2d(detection->p[3][0], detection->p[3][1]));
+  double tag_x[4] = {-1,1,1,-1};
+  double tag_y[4] = {-1,-1,1,1};
+//  ROS_INFO_STREAM("Tag " << detection->id);
+  for (int i=0; i<4; i++)
+  {
+    // Homography projection taking tag coordinates to pixels
+    double im_x, im_y;
+    homography_project(detection->H, tag_x[i], tag_y[i], &im_x, &im_y);
+    imagePoints.push_back(cv::Point2d(im_x, im_y));
+//    ROS_INFO_STREAM("Homography corner " << i << " = (" << im_x << " , " << im_y << ")");
+//    ROS_INFO_STREAM("p corner " << i << " = (" << detection->p[i][0] << " , " << detection->p[i][1] << ")");
+  }
 }
 
 Eigen::Matrix4d TagDetector::getRelativeTransform(std::vector<cv::Point3d > objectPoints, std::vector<cv::Point2d > imagePoints, double fx, double fy, double cx, double cy) const {
@@ -360,6 +370,12 @@ Eigen::Matrix4d TagDetector::getRelativeTransform(std::vector<cv::Point3d > obje
   T.topLeftCorner(3, 3) = wRo;
   T.col(3).head(3) << tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2);
   T.row(3) << 0,0,0,1;
+
+//  double pad_z = tvec.at<double>(2);
+//  if (pad_z < 0)
+//  {
+//    ROS_ERROR_STREAM("Detection anomaly!");
+//  }
 
   return T;
 }
@@ -518,14 +534,20 @@ std::vector<TagBundleDescription > TagDetector::parse_tag_bundles(XmlRpc::XmlRpc
       double qx = XmlRpcGetDoubleWithDefault(tag, "qx", 0.);
       double qy = XmlRpcGetDoubleWithDefault(tag, "qy", 0.);
       double qz = XmlRpcGetDoubleWithDefault(tag, "qz", 0.);
-      Eigen::Matrix3d R_oi = Eigen::Quaterniond
-          (qw, qx, qy, qz).toRotationMatrix();
+      Eigen::Quaterniond q_tag(qw, qx, qy, qz);
+      q_tag.normalize();
+      Eigen::Matrix3d R_oi = q_tag.toRotationMatrix();
 
       // Build the rigid transform from tag_j to the bundle origin
       cv::Matx44d T_mj(R_oi(0,0), R_oi(0,1), R_oi(0,2), x,
                        R_oi(1,0), R_oi(1,1), R_oi(1,2), y,
                        R_oi(2,0), R_oi(2,1), R_oi(2,2), z,
                        0,         0,         0,         1);
+      ROS_INFO_STREAM("T_m" << id << " =\n"
+                            << T_mj(0,0) << " " << T_mj(0,1) << " " << T_mj(0,2) << " " << T_mj(0,3) << "\n"
+                            << T_mj(1,0) << " " << T_mj(1,1) << " " << T_mj(1,2) << " " << T_mj(1,3) << "\n"
+                            << T_mj(2,0) << " " << T_mj(2,1) << " " << T_mj(2,2) << " " << T_mj(2,3) << "\n"
+                            << T_mj(3,0) << " " << T_mj(3,1) << " " << T_mj(3,2) << " " << T_mj(3,3));
 
       // Register the tag member
       bundle_i.addMemberTag(id, size, T_mj);

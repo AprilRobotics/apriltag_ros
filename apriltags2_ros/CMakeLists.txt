@@ -25,7 +25,7 @@ find_package(OpenCV REQUIRED)
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 
 ##set(CMAKE_BUILD_TYPE Coverage)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 #set the default path for built executables to the "bin" directory
 #set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
