@@ -73,6 +73,12 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(apriltag_getopt<std::str
   td_->refine_decode = refine_decode_;
   td_->refine_pose = refine_pose_;
 
+  // Get tf frame name to use for the camera
+  if (!pnh.getParam("camera_frame", camera_tf_frame_))
+  {
+    ROS_FATAL_STREAM("Camera frame not specified");
+  }
+
   // Create the apriltags variance models (result of noise statistical analysis)
   setupVarianceModels();
 }
@@ -178,9 +184,10 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
     }
 
     // Find this tag's description amongst the standalone tags
-    // Print warning when a tag was found that is neither part of a bundle nor standalone (thus it is a tag in the
-    // environment which the user specified no description for, or Apriltags misdetected a tag (bad ID or a false
-    // positive)).
+    // Print warning when a tag was found that is neither part of a
+    // bundle nor standalone (thus it is a tag in the environment
+    // which the user specified no description for, or Apriltags
+    // misdetected a tag (bad ID or a false positive)).
     StandaloneTagDescription* standaloneDescription;
     if (!findStandaloneTagDescription(tagID, standaloneDescription, !is_part_of_bundle))
       continue;
@@ -279,7 +286,7 @@ AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& ima
       pose.header = tag_detection_array.detections[i].pose.header;
       tf::Stamped<tf::Transform> tag_transform;
       tf::poseStampedMsgToTF(pose, tag_transform);
-      tf_pub_.sendTransform(tf::StampedTransform(tag_transform, tag_transform.stamp_, "camera", detection_names[i]));
+      tf_pub_.sendTransform(tf::StampedTransform(tag_transform, tag_transform.stamp_, camera_tf_frame_, detection_names[i]));
     }
   }
 
@@ -342,7 +349,7 @@ void TagDetector::addImagePoints(apriltag_detection_t *detection, std::vector<cv
   // NB: AprilTags 2 core algorithm lays a coordinate frame over the tag such
   // that, looking directly at the tag, x is right and y is down (i.e. a frame
   // aligned with the top-left-corner x right, y down image frame). We however
-  // use the tag frame x is right and y is UP. This, the +/- in tag_x and tag_y
+  // use the tag frame x is right and y is UP. Thus, the +/- in tag_x and tag_y
   // get shifted around to reconcile the core algorithm's tag frame with our
   // tag frame such that, in our frame, the tag corners are ordered from
   // bottom left to top left going counterclockwise.
@@ -365,6 +372,9 @@ Eigen::Matrix4d TagDetector::getRelativeTransform(std::vector<cv::Point3d > obje
                            0,  fy, cy,
                            0,   0,  1);
   cv::Vec4f distCoeffs(0,0,0,0); // distortion coefficients
+  // TODO Perhaps something like SOLVEPNP_EPNP would be faster? Would
+  // need to first check WHAT is a bottleneck in this code, and only
+  // do this if PnP solution is the bottleneck.
   cv::solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs, rvec, tvec);
   cv::Matx33d R;
   cv::Rodrigues(rvec, R);
@@ -422,7 +432,7 @@ void TagDetector::draw_detections(cv_bridge::CvImagePtr image) {
     zarray_get(detections_, i, &det);
 
     // draw tag outline with edge colors green, blue, blue, red
-    // (going counter-clockwise, starting from lower-right corner in
+    // (going counter-clockwise, starting from lower-left corner in
     // tag coords). cv::Scalar(Blue, Green, Red) format for the edge
     // colors!
     line(image->image, cv::Point((int)det->p[0][0], (int)det->p[0][1]),
