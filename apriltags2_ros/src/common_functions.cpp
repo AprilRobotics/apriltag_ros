@@ -307,15 +307,22 @@ void TagDetector::removeDuplicates()
   bool duplicate_detected = false;
   while (true)
   {
-    if (count >= zarray_size(detections_)-1)
+    if (count > zarray_size(detections_)-1)
     {
-      break;
+      // The entire detection set was parsed
+      return;
     }
     apriltag_detection_t *detection;
     zarray_get(detections_, count, &detection);
     int id_current = detection->id;
-    zarray_get(detections_, count+1, &detection);
-    int id_next = detection->id;
+    // Default id_next value of -1 ensures that if the last detection
+    // is a duplicated tag ID, it will get removed
+    int id_next = -1;
+    if (count < zarray_size(detections_)-1)
+    {
+      zarray_get(detections_, count+1, &detection);
+      id_next = detection->id;
+    }
     if (id_current == id_next || (id_current != id_next && duplicate_detected))
     {
       duplicate_detected = true;
@@ -324,40 +331,44 @@ void TagDetector::removeDuplicates()
       zarray_remove_index(detections_, count, shuffle);
       if (id_current != id_next)
       {
-        ROS_WARN_STREAM("Pruning tag with ID " << id_current << " because this ID appears more than once in the image.");
+        ROS_WARN_STREAM("Pruning tag ID " << id_current << " because it "
+                        "appears more than once in the image.");
         duplicate_detected = false; // Reset
       }
       continue;
     }
-    count++;
+    else
+    {
+      count++;
+    }
   }
 }
 
-void TagDetector::addObjectPoints(double s, cv::Matx44d T_oi, std::vector<cv::Point3d >& objectPoints) const {
-  // Add to vector the tag corners in the world coordinates (ideal)
+void TagDetector::addObjectPoints (
+    double s, cv::Matx44d T_oi, std::vector<cv::Point3d >& objectPoints) const
+{
+  // Add to object point vector the tag corner coordinates in the bundle frame
+  // Going counterclockwise starting from the bottom left corner
   objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0)*cv::Vec4d(-s,-s, 0, 1));
   objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0)*cv::Vec4d( s,-s, 0, 1));
   objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0)*cv::Vec4d( s, s, 0, 1));
   objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0)*cv::Vec4d(-s, s, 0, 1));
 }
 
-void TagDetector::addImagePoints(apriltag_detection_t *detection, std::vector<cv::Point2d >& imagePoints) const {
-  // Add to vector the detected tag corners (going from bottom left to
-  // top left in counterclockwise fashion) in the image (pixel)
-  // coordinates
-  //
-  // NB: AprilTags 2 core algorithm lays a coordinate frame over the tag such
-  // that, looking directly at the tag, x is right and y is down (i.e. a frame
-  // aligned with the top-left-corner x right, y down image frame). We however
-  // use the tag frame x is right and y is UP. Thus, the +/- in tag_x and tag_y
-  // get shifted around to reconcile the core algorithm's tag frame with our
-  // tag frame such that, in our frame, the tag corners are ordered from
-  // bottom left to top left going counterclockwise.
+void TagDetector::addImagePoints (
+    apriltag_detection_t *detection,
+    std::vector<cv::Point2d >& imagePoints) const
+{
+  // Add to image point vector the tag corners in the image frame
+  // Going counterclockwise starting from the bottom left corner
   double tag_x[4] = {-1,1,1,-1};
-  double tag_y[4] = {1,1,-1,-1};
+  double tag_y[4] = {1,1,-1,-1}; // Negated because AprilTag tag local
+                                 // frame has y-axis pointing DOWN
+                                 // while we use the tag local frame
+                                 // with y-axis pointing UP
   for (int i=0; i<4; i++)
   {
-    // Homography projection taking tag coordinates to pixels
+    // Homography projection taking tag local frame coordinates to image pixels
     double im_x, im_y;
     homography_project(detection->H, tag_x[i], tag_y[i], &im_x, &im_y);
     imagePoints.push_back(cv::Point2d(im_x, im_y));
