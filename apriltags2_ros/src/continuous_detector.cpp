@@ -23,7 +23,7 @@ void ContinuousDetector::image_callback(const sensor_msgs::ImageConstPtr& image_
   }
 
   // Publish detected tags in the image by AprilTags 2
-  tag_detections_publisher_.publish(tag_detector_.detect_tags(cv_image_,camera_info));
+  tag_detections_publisher_.publish(tag_detector_.detectTags(cv_image_,camera_info));
 
   // Publish the camera image overlaid by outlines of the detected tags and their payload values
   if (draw_tag_detections_image_) {

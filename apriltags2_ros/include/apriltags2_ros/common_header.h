@@ -184,7 +184,7 @@ class TagDetector {
   geometry_msgs::PoseWithCovarianceStamped makeTagPose(const Eigen::Matrix4d& transform, const Eigen::Quaternion<double> rot_quaternion, const std_msgs::Header& header, int size_mm = 0);
 
   // Detect tags in an image
-  AprilTagDetectionArray detect_tags(const cv_bridge::CvImagePtr& image, const sensor_msgs::CameraInfoConstPtr& camera_info);
+  AprilTagDetectionArray detectTags(const cv_bridge::CvImagePtr& image, const sensor_msgs::CameraInfoConstPtr& camera_info);
 
   // Get the pose of the tag in the camera frame
   // 

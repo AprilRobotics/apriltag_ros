@@ -105,7 +105,7 @@ TagDetector::~TagDetector() {
   }
 }
 
-AprilTagDetectionArray TagDetector::detect_tags(const cv_bridge::CvImagePtr& image, const sensor_msgs::CameraInfoConstPtr& camera_info) {
+AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr& image, const sensor_msgs::CameraInfoConstPtr& camera_info) {
   // Convert image to AprilTag code's format
   cv::Mat gray_image;
   cv::cvtColor(image->image, gray_image, CV_BGR2GRAY);
