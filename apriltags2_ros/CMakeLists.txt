@@ -23,14 +23,7 @@ find_package(OpenCV REQUIRED)
 #  Release        : w/o debug symbols, w/ optimization
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-
-##set(CMAKE_BUILD_TYPE Coverage)
 set(CMAKE_BUILD_TYPE Debug)
-
-#set the default path for built executables to the "bin" directory
-#set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-#set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 add_definitions (-Wall -O3)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -funsafe-loop-optimizations -fsee -funroll-loops -fno-math-errno -funsafe-math-optimizations -ffinite-math-only -fno-signed-zeros ")
@@ -118,24 +111,3 @@ target_link_libraries(${PROJECT_NAME}_single_image_client_node
   common
   ${catkin_LIBRARIES}
 )
-
-#############
-## Install ##
-#############
-# TODO uncomment these, such that can build as Release (faster)
-#
-### Mark executables and/or libraries for installation
-#install(TARGETS apriltag2_detector apriltag2_detector_nodelet apriltag2_detector_node
-#  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-#  )
-#
-### Mark cpp header files for installation
-#install(DIRECTORY include/apriltags2_ros
-#  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#  )
-#
-### Mark other files for installation (e.g. launch and bag files, etc.)
-#install(FILES nodelet_plugins.xml
-#  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

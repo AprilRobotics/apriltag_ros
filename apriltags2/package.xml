@@ -1,22 +1,15 @@
 <?xml version="1.0"?>
 <package>
   <name>apriltags2</name>
-  <version>0.0.1</version>
+  <version>1.0.0</version>
   <description>A catkin version of the original C code for AprilTags 2 algorithm</description>
 
-  <!-- One maintainer tag required, multiple allowed, one person per tag --> 
-  <!-- Example:  -->
-  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
   <maintainer email="danylo.malyuta@gmail.com">Danylo Malyuta</maintainer>
-  <author>Danylo Malyuta</author>
+  <author email="danylo.malyuta@gmail.com">Danylo Malyuta</author>
 
-  <license>MIT</license>
+  <license>BSD</license>
 
   <url type="website">https://april.eecs.umich.edu/software/apriltag.html</url>
 
   <buildtool_depend>catkin</buildtool_depend>
-
-
-  <export>
-  </export>
 </package>
