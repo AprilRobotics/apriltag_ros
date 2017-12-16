@@ -1,17 +1,18 @@
-#ifndef APRILTAGS2_WRAPPER_CAMERA_STREAM_DETECTOR_H
-#define APRILTAGS2_WRAPPER_CAMERA_STREAM_DETECTOR_H
+#ifndef APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
+#define APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
 
-#include <apriltags2_ros/common_header.h>
+#include "apriltags2_ros/common_functions.h"
 
-namespace apriltags2_ros {
+namespace apriltags2_ros
+{
 
-class ContinuousDetector {
+class ContinuousDetector
+{
  public:
-
   ContinuousDetector(ros::NodeHandle& nh, ros::NodeHandle& pnh);
-  //~ContinuousDetector();
 
-  void image_callback(const sensor_msgs::ImageConstPtr& image_rect,const sensor_msgs::CameraInfoConstPtr& camera_info);
+  void imageCallback(const sensor_msgs::ImageConstPtr& image_rect,
+                     const sensor_msgs::CameraInfoConstPtr& camera_info);
 
  private:
   TagDetector tag_detector_;
@@ -24,6 +25,6 @@ class ContinuousDetector {
   ros::Publisher tag_detections_publisher_;
 };
 
-}
+} // namespace apriltags2_ros
 
-#endif //APRILTAGS2_WRAPPER_CAMERA_STREAM_DETECTOR_H
+#endif // APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H

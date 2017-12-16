@@ -1,3 +1,2 @@
-# JetBrains CLion ignores
-.idea/
-cmake-build-debug/
+**/matlab_rosbag-0.5.0-linux64/
+**/*.bag

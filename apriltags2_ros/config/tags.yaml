@@ -19,6 +19,11 @@
 #   ]
 standalone_tags:
   [
+    # {id: 0, size: 0.05},
+    # {id: 1, size: 0.05},
+    # {id: 2, size: 0.05},
+    # {id: 3, size: 0.05},
+    # {id: 4, size: 0.05}
   ]
 # ## Tag bundle definitions
 # ### Remarks
@@ -41,126 +46,16 @@ standalone_tags:
 #     },
 #     ...
 #   ]
-
-# GAZEBO SINGLE TAG NOISE TEST
-# tag_bundles:
-#   [
-#   {
-#   name: 'single',
-#   layout:
-#     [
-#     {id: 5, size: 0.4}
-#     ]
-#   }
-#   ]
-
-# GAZEBO BUNDLE EFFECT ON NOISE TEST
-# tag_bundles:
-#   [
-#   {
-#   name: 'bundle_1',
-#   layout:
-#     [
-#     {id: 8, size: 0.15}
-#     ]
-#   },
-#   {
-#   name: 'bundle_3',
-#   layout:
-#     [
-#     {id: 8, size: 0.15},
-#     {id: 7, size: 0.15, x: -0.16875},
-#     {id: 9, size: 0.15, x: 0.16875},
-#     ]
-#   },
-#   {
-#   name: 'bundle_5',
-#   layout:
-#     [
-#     {id: 8, size: 0.15},
-#     {id: 7, size: 0.15, x: -0.16875},
-#     {id: 9, size: 0.15, x: 0.16875},
-#     {id: 5, size: 0.15, y: 0.16875},
-#     {id: 11, size: 0.15, y: -0.16875}
-#     ]
-#   },
-#   {
-#   name: 'bundle_9',
-#   layout:
-#     [
-#     {id: 8, size: 0.15},
-#     {id: 7, size: 0.15, x: -0.16875},
-#     {id: 9, size: 0.15, x: 0.16875},
-#     {id: 5, size: 0.15, y: 0.16875},
-#     {id: 11, size: 0.15, y: -0.16875},
-#     {id: 4, size: 0.15, x: -0.16875, y: 0.16875},
-#     {id: 6, size: 0.15, x: 0.16875, y: 0.16875},
-#     {id: 10, size: 0.15, x: -0.16875, y: -0.16875},
-#     {id: 12, size: 0.15, x: 0.16875, y: -0.16875}
-#     ]
-#   }
-#   ]
-
-
-# GREEN FOAM BLOCK PATTERN
-# tag_bundles:
-#   [
-#     {
-#       name: 'charging_pad',
-#       layout:
-#         [
-#           {id: 9,  size: 0.1},
-#           {id: 2,  size: 0.1, x: -0.05625, y:  0.1125},
-#           {id: 13, size: 0.1, x:  0.05625, y:  0.1125},
-#           {id: 0,  size: 0.1, x: -0.05625, y: -0.1125},
-#           {id: 4,  size: 0.1, x:  0.05625, y: -0.1125}
-#         ]
-#     }
-#   ]
-
-
-# SKYSENSE USED CHARGING PAD PATTERN
 tag_bundles:
   [
     {
-      name: 'charging_pad',
+      name: 'my_bundle',
       layout:
         [
-          {id: 5,  size: 0.15, x: -0.25, y: 0.5517, z: 0.0, qw: 1.0,    qx: 0.0, qy: 0.0, qz: 0.0},
-          {id: 11, size: 0.15, x: 0.0,   y: 0.5517, z: 0.0, qw: 1.0,    qx: 0.0, qy: 0.0, qz: 0.0},
-          {id: 16, size: 0.15, x: 0.25,  y: 0.5517, z: 0.0, qw: 1.0,    qx: 0.0, qy: 0.0, qz: 0.0},
-          {id: 25, size: 0.48, x: 0.0,   y: 0.9517, z: 0.0, qw: 0.7071, qx: 0.0, qy: 0.0, qz: 0.7071}
+          {id: 2, size: 0.05, x: 0.0545, y: 0.0583, z: -0.0013, qw: 1.0000, qx: -0.0085, qy: -0.0044, qz: 0.0005},
+          {id: 1, size: 0.05, x: -0.0578, y: 0.0578, z: -0.0005, qw: 0.9998, qx: -0.0136, qy: -0.0149, qz: -0.0020},
+          {id: 3, size: 0.05, x: -0.0583, y: -0.0545, z: -0.0020, qw: 1.0000, qx: 0.0090, qy: 0.0008, qz: -0.0011},
+          {id: 4, size: 0.05, x: 0.0542, y: -0.0542, z: 0.0004, qw: 0.9999, qx: 0.0097, qy: -0.0093, qz: 0.0016}
         ]
     }
   ]
-
-# SKYSENSE PROPOSED ALTERNATIVE CHARGING PAD PATTERN
-# tag_bundles:
-#   [
-#   {
-#   name: 'charging_pad',
-#   layout:
-#     [
-#     # Panel along +y
-#     {id: 5,  size: 0.15, x: -0.25, y: 0.5517, z: 0.0, qw: 1.0,    qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 11, size: 0.15, x: 0.0,   y: 0.5517, z: 0.0, qw: 1.0,    qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 16, size: 0.15, x: 0.25,  y: 0.5517, z: 0.0, qw: 1.0,    qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 25, size: 0.48, x: 0.0,   y: 0.9517, z: 0.0, qw: 0.7071, qx: 0.0, qy: 0.0, qz: 0.7071},
-#     # Panel along -x
-#     {id: 12, size: 0.15, x: -0.5517, y: 0.25, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 13, size: 0.15, x: -0.5517, y: 0.0, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 14, size: 0.15, x: -0.5517, y: -0.25, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 15, size: 0.48, x: -0.9517, y: 0.0, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     # Panel along -y
-#     {id: 8, size: 0.15, x: -0.25, y: -0.5517, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 7, size: 0.15, x: 0.0, y: -0.5517, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 6, size: 0.15, x: 0.25, y: -0.5517, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 9, size: 0.48, x: 0.0, y: -0.9517, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     # Panel along +x
-#     {id: 1, size: 0.15, x: 0.5517, y: 0.25, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 2, size: 0.15, x: 0.5517, y: 0.0, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 3, size: 0.15, x: 0.5517, y: -0.25, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0},
-#     {id: 4, size: 0.48, x: 0.9517, y: 0.0, z: 0.0, qw: 1.0, qx: 0.0, qy: 0.0, qz: 0.0}
-#     ]
-#   }
-#   ]
