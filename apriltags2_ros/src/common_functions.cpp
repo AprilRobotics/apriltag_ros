@@ -65,11 +65,6 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     }
   }
 
-  // Get whether to use the P matrix (Projection/camera matrix) or K matrix
-  // (Intrinsic camera matrix) of sensor_msgs/CameraInfo message true selects
-  // the P matrix (the recommended choice)
-  projected_optics_ = getAprilTagOption<bool>(pnh, "projected_optics", true);
-
   // Define the tag family whose tags should be searched for in the camera
   // images
   if (family_ == "tag36h11")
@@ -161,28 +156,10 @@ AprilTagDetectionArray TagDetector::detectTags (
   };
 
   // Get camera intrinsic properties
-  double fx; // focal length in camera x-direction (in pixels)
-  double fy; // focal length in camera y-direction (in pixels)
-  double cx; // optical center x-coordinate (in pixels)
-  double cy; // optical center y-coordinate (in pixels)
-  if (projected_optics_)
-  {
-    // use projected focal length and principal point
-    // these are the correct values
-    fx = camera_info->P[0];
-    fy = camera_info->P[5];
-    cx = camera_info->P[2];
-    cy = camera_info->P[6];
-  }
-  else
-  {
-    // use camera intrinsic focal length and principal point
-    // (for backwards compatability)
-    fx = camera_info->K[0];
-    fy = camera_info->K[4];
-    cx = camera_info->K[2];
-    cy = camera_info->K[5];
-  }
+  double fx = camera_info->K[0]; // focal length in camera x-direction [px]
+  double fy = camera_info->K[4]; // focal length in camera y-direction [px]
+  double cx = camera_info->K[2]; // optical center x-coordinate [px]
+  double cy = camera_info->K[5]; // optical center y-coordinate [px]
 
   // Run AprilTags 2 algorithm on the image
   detections_ = apriltag_detector_detect(td_, &apriltags2_image);

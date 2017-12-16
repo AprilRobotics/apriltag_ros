@@ -134,7 +134,6 @@ class TagDetector
   zarray_t *detections_;
 
   // Other members
-  bool projected_optics_;
   std::map<int, StandaloneTagDescription> standalone_tag_descriptions_;
   std::vector<TagBundleDescription > tag_bundle_descriptions_;
   bool run_quietly_;
