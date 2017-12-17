@@ -10,15 +10,15 @@ This is a Robot Operating System (ROS) wrapper of the [AprilTags 2 visual fiduci
 
 Pull requests are welcome! Especially for the following areas:
 
-- Publishing of the AprilTag 2 algorithm intermediate images over a ROS image topic (that AprilTag 2 [already generates](https://github.com/dmalyuta/apriltags2_ros/blob/master/apriltags2/src/apriltag.c#L1167-L1395) when `tag_debug==1`)
-- Conversion of the [bundle calibration script](https://github.com/dmalyuta/apriltags2_ros/blob/master/apriltags2_ros/scripts/calibrate_bundle.m) from MATLAB to Python
+- Publishing of the AprilTag 2 algorithm intermediate images over a ROS image topic (that AprilTag 2 [already generates](https://github.com/dmalyuta/apriltags2_ros/blob/526b9455121ae0bb6b4c1c3db813f0fbdf78393c/apriltags2/src/apriltag.c#L1167-L1395) when `tag_debug==1`)
+- Conversion of the [bundle calibration script](https://github.com/dmalyuta/apriltags2_ros/blob/526b9455121ae0bb6b4c1c3db813f0fbdf78393c/apriltags2_ros/scripts/calibrate_bundle.m) from MATLAB to Python
 - Replacement of AprilTag 2 core algorithm's usage of custom linear algebra and image processing functions with Boost and OpenCV
 
 # Copyright
 
 The source code in `apriltags2/` is wholly the work of the [APRIL Robotics Lab](https://april.eecs.umich.edu/software/apriltag.html) at The University of Michigan. This package simply rearranges the source code to be able to compile it with catkin.
 
-The source code in `apriltags2_ros/` is original code that is the ROS wrapper itself, see the [LICENSE](https://github.com/dmalyuta/apriltags2_ros/blob/master/LICENSE). It is inspired by [apriltags_ros](https://github.com/RIVeR-Lab/apriltags_ros) and provides a superset of its functionalities.
+The source code in `apriltags2_ros/` is original code that is the ROS wrapper itself, see the [LICENSE](https://github.com/dmalyuta/apriltags2_ros/blob/526b9455121ae0bb6b4c1c3db813f0fbdf78393c/LICENSE). It is inspired by [apriltags_ros](https://github.com/RIVeR-Lab/apriltags_ros) and provides a superset of its functionalities.
 
 If you use this code, please kindly cite:
 
