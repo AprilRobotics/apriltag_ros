@@ -2,7 +2,9 @@
 <package>
   <name>apriltags2_ros</name>
   <version>1.0.0</version>
-  <description>A ROS wrapper of the AprilTags 2 algorithm</description>
+  <description>
+    A ROS wrapper of the AprilTags 2 visual fiducial detection algorithm
+  </description>
 
   <maintainer email="danylo.malyuta@gmail.com">Danylo Malyuta</maintainer>
   <author email="danylo.malyuta@gmail.com">Danylo Malyuta</author>

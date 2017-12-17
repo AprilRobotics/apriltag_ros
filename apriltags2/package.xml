@@ -2,7 +2,10 @@
 <package>
   <name>apriltags2</name>
   <version>1.0.0</version>
-  <description>A catkin version of the original C code for AprilTags 2 algorithm</description>
+  <description>
+    A catkin version of the original C code for AprilTags 2 algorithm
+    (version 2016-12-01 (0.9.8))
+  </description>
 
   <maintainer email="danylo.malyuta@gmail.com">Danylo Malyuta</maintainer>
   <author email="danylo.malyuta@gmail.com">Danylo Malyuta</author>
