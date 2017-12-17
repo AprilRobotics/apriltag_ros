@@ -25,9 +25,9 @@ if ~exist('matlab_rosbag-0.5.0-linux64','file')
             ['https://github.com/bcharrow/matlab_rosbag/releases/' ...
              'download/v0.5/matlab_rosbag-0.5.0-linux64.zip']);
     unzip('matlab_rosbag');
-    addpath('matlab_rosbag-0.5.0-linux64');
     delete matlab_rosbag.zip
 end
+addpath('matlab_rosbag-0.5.0-linux64');
 
 %% Load the tag detections bagfile
 

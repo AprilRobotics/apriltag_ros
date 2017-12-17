@@ -108,7 +108,8 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   // Get tf frame name to use for the camera
   if (!pnh.getParam("camera_frame", camera_tf_frame_))
   {
-    ROS_FATAL_STREAM("Camera frame not specified");
+    ROS_WARN_STREAM("Camera frame not specified, using 'camera'");
+    camera_tf_frame_ = "camera";
   }
 }
 

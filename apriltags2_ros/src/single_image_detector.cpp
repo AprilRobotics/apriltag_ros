@@ -16,7 +16,6 @@ SingleImageDetector::SingleImageDetector (ros::NodeHandle& nh,
                           &SingleImageDetector::analyzeImage, this);
   tag_detections_publisher_ =
       nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
-  ROS_INFO_STREAM("Namespace: " << ros::this_node::getNamespace().c_str());
   ROS_INFO_STREAM("Ready to do tag detection on single images");
 }
 

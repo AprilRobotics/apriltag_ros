@@ -5,9 +5,9 @@
   <arg name="image_load_path" /> <!-- Where to load image for analysis from -->
   <arg name="image_save_path" /> <!-- Where to save tag detections image -->
 
-  <!-- Set ApriTags 2 algorithm and common parameters -->
-  <!--<include file="$(find apriltags2_ros)/config/apriltags2_parameters.xml" ns="$(arg node_namespace)" />-->
-  <include file="$(find apriltags2_ros)/config/common_parameters.xml" ns="$(arg node_namespace)" />
+  <!-- Set parameters -->
+  <rosparam command="load" file="$(find apriltags2_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
+  <rosparam command="load" file="$(find apriltags2_ros)/config/tags.yaml" ns="$(arg node_namespace)" />
 
   <node pkg="apriltags2_ros" type="apriltags2_ros_single_image_client_node" name="$(arg node_namespace)" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" >
 
@@ -15,10 +15,10 @@
     <param name="image_save_path" type="str" value="$(arg image_save_path)" />
 
     <!-- Camera intrinsic parameters -->
-    <param name="fx" type="double" value="350.880966" />
-    <param name="fy" type="double" value="351.07900077" />
-    <param name="cx" type="double" value="383.99347817" />
-    <param name="cy" type="double" value="202.79566558" />
+    <param name="fx" type="double" value="652.7934615847107" />
+    <param name="fy" type="double" value="653.9480389077635" />
+    <param name="cx" type="double" value="307.1288710375904" />
+    <param name="cy" type="double" value="258.7823279214385" />
 
   </node>
 
