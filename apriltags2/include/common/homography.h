@@ -53,7 +53,7 @@ extern "C" {
      * projects points from the tag's local coordinate system to the
      * camera's coordinate frame).
      *
-     * [ h00 h01 h02 h03] = [ fx   0     cx 0 ] [ R00 R01 R02 TX ]
+    * [ h00 h01 h02 h03] = [ fx   0     cx 0 ] [ R00 R01 R02 TX ]
      * [ h10 h11 h12 h13] = [ 0    fy    cy 0 ] [ R10 R11 R12 TY ]
      * [ h20 h21 h22 h23] = [ 0    0      s 0 ] [ R20 R21 R22 TZ ]
      *                                          [ 0   0   0   1  ]
@@ -95,7 +95,7 @@ extern "C" {
      * your tag measures 0.25m along the side, your tag size is
      * 0.25. (The homography is computed in terms of *half* the tag
      * size, i.e., that a tag is 2 units wide as it spans from -1 to
-     * +1, but this code makes the appropriate adjustment. XXX it doesn't!)
+     * +1, but this code makes the appropriate adjustment.)
      *
      * A note on signs:
      *
@@ -183,9 +183,6 @@ matd_t *homography_to_pose(const matd_t *H, double fx, double fy, double cx, dou
 // [ 0  0 -1  0 ]
 
 matd_t *homography_to_model_view(const matd_t *H, double F, double G, double A, double B, double C, double D);
-
-void quat_to_matrix(const double q[4], matd_t *M);
-void matrix_to_quat(const matd_t *R, double q[4]);
 
 #ifdef __cplusplus
 }

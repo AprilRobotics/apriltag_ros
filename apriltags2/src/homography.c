@@ -411,8 +411,8 @@ matd_t *homography_to_model_view(const matd_t *H, double F, double G, double A, 
 }
 
 // Only uses the upper 3x3 matrix.
-// NB: Hamilton convention used for quaternions!
-void matrix_to_quat(const matd_t *R, double q[4])
+/*
+static void matrix_to_quat(const matd_t *R, double q[4])
 {
     // see: "from quaternion to matrix and back"
 
@@ -464,6 +464,7 @@ void matrix_to_quat(const matd_t *R, double q[4])
     for (int i = 0; i < 4; i++)
         q[i] *= norm;
 }
+*/
 
 // overwrites upper 3x3 area of matrix M. Doesn't touch any other elements of M.
 void quat_to_matrix(const double q[4], matd_t *M)
