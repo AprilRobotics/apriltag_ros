@@ -12,7 +12,9 @@ Pull requests are welcome! Especially for the following areas:
 
 - Publishing of the AprilTag 2 algorithm intermediate images over a ROS image topic (that AprilTag 2 [already generates](https://github.com/dmalyuta/apriltags2_ros/blob/526b9455121ae0bb6b4c1c3db813f0fbdf78393c/apriltags2/src/apriltag.c#L1167-L1395) when `tag_debug==1`)
 - Conversion of the [bundle calibration script](https://github.com/dmalyuta/apriltags2_ros/blob/526b9455121ae0bb6b4c1c3db813f0fbdf78393c/apriltags2_ros/scripts/calibrate_bundle.m) from MATLAB to Python
+- Extend calibration to support calibrating tags that cannot appear simultaneously with the master tag, but do appear simultaneously with other tags which themselves or via a similar relationship appear with the master tag (e.g. a bundle with the geometry of a cube - if the master is on one face, tags on the opposite face cannot currently be calibrated). This is basically "transform chaining" and potentially allows calibration of bundles with arbitrary geometry as long as a transform chain exists from any tag to the master tag
 - Replacement of AprilTag 2 core algorithm's usage of custom linear algebra and image processing functions with Boost and OpenCV
+- Supporting multiple tag family detection (currently all tags have to be of the same family). This means calling the detector once for each family. Because the core AprilTag 2 algorithm is the performance bottleneck, detection of `n` tag families will possibly decrease performance by `1/n`
 
 # Copyright
 
