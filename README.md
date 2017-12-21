@@ -24,6 +24,10 @@ The source code in `apriltags2_ros/` is original code that is the ROS wrapper it
 
 If you use this code, please kindly cite:
 
+
+- D. Malyuta, “[Navigation, Control and Mission Logic for Quadrotor Full-cycle Autonomy](https://www.research-collection.ethz.ch/TODO),” Master thesis, Jet Propulsion Laboratory, 4800 Oak Grove Drive, Pasadena, CA 91109, USA, December 2017. **[Coming soon]**
+- J. Wang and E. Olson, "[AprilTag 2: Efficient and robust fiducial detection](http://ieeexplore.ieee.org/document/7759617/)," in ''Proceedings of the IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)'', October 2016.
+
 ```
 @mastersthesis{malyuta:2017mt,
   author = {Danylo Malyuta},
