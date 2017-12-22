@@ -65,14 +65,20 @@ int main(int argc, char **argv)
   service.request.full_path_where_to_get_image =
       apriltags2_ros::getAprilTagOption<std::string>(
           pnh, "image_load_path", "");
+  if (service.request.full_path_where_to_get_image.empty())
+  {
+    return 1;
+  }
   service.request.full_path_where_to_save_image =
       apriltags2_ros::getAprilTagOption<std::string>(
           pnh, "image_save_path", "");
+  if (service.request.full_path_where_to_save_image.empty())
+  {
+    return 1;
+  }
 
   // Replicate sensors_msgs/CameraInfo message (must be up-to-date with the
   // analyzed image!)  
-  service.request.camera_info.height = 480;
-  service.request.camera_info.width = 752;
   service.request.camera_info.distortion_model = "plumb_bob";
   double fx, fy, cx, cy;
   if (!getRosParameter(pnh, "fx", fx))
@@ -89,16 +95,6 @@ int main(int argc, char **argv)
   service.request.camera_info.K[4] = fy;
   service.request.camera_info.K[5] = cy;
   service.request.camera_info.K[8] = 1.0;
-  // Rectification matrix (stereo cameras only)
-  service.request.camera_info.R[0] = 1.0;
-  service.request.camera_info.R[4] = 1.0;
-  service.request.camera_info.R[8] = 1.0;
-  // Projection/camera matrix
-  service.request.camera_info.P[0] = fx;
-  service.request.camera_info.P[2] = cx;
-  service.request.camera_info.P[5] = fy;
-  service.request.camera_info.P[6] = cy;
-  service.request.camera_info.P[10] = 1.0;
 
   // Call the service (detect tags in the image specified by the
   // image_load_path)

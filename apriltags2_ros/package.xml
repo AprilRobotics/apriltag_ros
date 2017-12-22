@@ -3,14 +3,24 @@
   <name>apriltags2_ros</name>
   <version>1.0.0</version>
   <description>
-    A ROS wrapper of the AprilTags 2 visual fiducial detection algorithm
+    A ROS wrapper of the AprilTags 2 visual fiducial detection
+    algorithm. Provides full access to the core AprilTags 2 algorithm's
+    customizations and makes the tag detection image and detected tags' poses
+    available over ROS topics (including tf). The core AprilTags 2 algorithm is
+    extended to allow the detection of tag bundles and a bundle calibration
+    script is provided (bundle detection is more accurate than single tag
+    detection). Continuous (camera image stream) and single image detector nodes
+    are available.
   </description>
 
   <maintainer email="danylo.malyuta@gmail.com">Danylo Malyuta</maintainer>
-  
   <author email="danylo.malyuta@gmail.com">Danylo Malyuta</author>
 
   <license>BSD</license>
+
+  <url type="website">http://www.ros.org/wiki/apriltags2_ros</url>
+  <url type="bugtracker">https://github.com/dmalyuta/apriltags2_ros/issues</url>
+  <url type="repository">https://github.com/dmalyuta/apriltags2_ros</url>
 
   <buildtool_depend>catkin</buildtool_depend>
 

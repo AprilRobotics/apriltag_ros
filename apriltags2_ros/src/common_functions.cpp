@@ -221,7 +221,8 @@ AprilTagDetectionArray TagDetector::detectTags (
     // the process of collecting all the object-image corresponding points
     int tagID = detection->id;
     bool is_part_of_bundle = false;
-    for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++) {
+    for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++)
+    {
       // Iterate over the registered bundles
       TagBundleDescription bundle = tag_bundle_descriptions_[j];
 
@@ -489,6 +490,29 @@ void TagDetector::drawDetections (cv_bridge::CvImagePtr image)
   {
     apriltag_detection_t *det;
     zarray_get(detections_, i, &det);
+
+    // Check if this ID is present in config/tags.yaml
+    // Check if is part of a tag bundle
+    int tagID = det->id;
+    bool is_part_of_bundle = false;
+    for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++)
+    {
+      TagBundleDescription bundle = tag_bundle_descriptions_[j];
+      if (bundle.id2idx_.find(tagID) != bundle.id2idx_.end())
+      {
+        is_part_of_bundle = true;
+        break;
+      }
+    }
+    // If not part of a bundle, check if defined as a standalone tag
+    StandaloneTagDescription* standaloneDescription;
+    if (!is_part_of_bundle &&
+        !findStandaloneTagDescription(tagID, standaloneDescription, false))
+    {
+      // Neither a standalone tag nor part of a bundle, so this is a "rogue"
+      // tag, skip it.
+      continue;
+    }
 
     // Draw tag outline with edge colors green, blue, blue, red
     // (going counter-clockwise, starting from lower-left corner in
