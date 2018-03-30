@@ -31,24 +31,36 @@
 
 #include "apriltags2_ros/continuous_detector.h"
 
+#include <pluginlib/class_list_macros.h>
+
 namespace apriltags2_ros
 {
 
-ContinuousDetector::ContinuousDetector (ros::NodeHandle& nh,
-                                        ros::NodeHandle& pnh) :
-    tag_detector_(pnh),
-    draw_tag_detections_image_(
-        getAprilTagOption<bool>(pnh, "publish_tag_detections_image", false)),
-    it_(nh)
+PLUGINLIB_EXPORT_CLASS(apriltags2_ros::ContinuousDetector, nodelet::Nodelet);
+
+ContinuousDetector::ContinuousDetector ()
 {
+}
+
+void ContinuousDetector::onInit ()
+{
+  ros::NodeHandle& nh = getNodeHandle();
+  ros::NodeHandle& pnh = getPrivateNodeHandle();
+
+  tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
+  draw_tag_detections_image_ = getAprilTagOption<bool>(pnh, 
+      "publish_tag_detections_image", false);
+  it_ = std::shared_ptr<image_transport::ImageTransport>(
+      new image_transport::ImageTransport(nh));
+
   camera_image_subscriber_ =
-      it_.subscribeCamera("image_rect", 1,
+      it_->subscribeCamera("image_rect", 1,
                           &ContinuousDetector::imageCallback, this);
   tag_detections_publisher_ =
       nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
   if (draw_tag_detections_image_)
   {
-    tag_detections_image_publisher_ = it_.advertise("tag_detections_image", 1);
+    tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
   }
 }
 
@@ -71,13 +83,13 @@ void ContinuousDetector::imageCallback (
 
   // Publish detected tags in the image by AprilTags 2
   tag_detections_publisher_.publish(
-      tag_detector_.detectTags(cv_image_,camera_info));
+      tag_detector_->detectTags(cv_image_,camera_info));
 
   // Publish the camera image overlaid by outlines of the detected tags and
   // their payload values
   if (draw_tag_detections_image_)
   {
-    tag_detector_.drawDetections(cv_image_);
+    tag_detector_->drawDetections(cv_image_);
     tag_detections_image_publisher_.publish(cv_image_->toImageMsg());
   }
 }
