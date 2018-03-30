@@ -33,10 +33,10 @@
 
 #include <pluginlib/class_list_macros.h>
 
+PLUGINLIB_EXPORT_CLASS(apriltags2_ros::ContinuousDetector, nodelet::Nodelet);
+
 namespace apriltags2_ros
 {
-
-PLUGINLIB_EXPORT_CLASS(apriltags2_ros::ContinuousDetector, nodelet::Nodelet);
 
 ContinuousDetector::ContinuousDetector ()
 {
