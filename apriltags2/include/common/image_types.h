@@ -52,7 +52,7 @@ struct image_u32
 {
     const int32_t width;
     const int32_t height;
-    const int32_t stride; // int32_ts per line
+    const int32_t stride; // uint32_ts per line
 
     uint32_t *buf; // indexed as buf[y*stride + x]
 };
