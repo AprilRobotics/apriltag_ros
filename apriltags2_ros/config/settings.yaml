@@ -1,7 +1,7 @@
 # AprilTags 2 code parameters
 # Find descriptions in apriltags2/include/apriltag.h:struct apriltag_detector
 #                      apriltags2/include/apriltag.h:struct apriltag_family
-tag_family:        'tag36h11' # options: tag36h11, tag36h10, tag25h9, tag25h7, tag16h5
+tag_family:        'tag36h11' # options: tag36h11, tag36h10, tag36h9, tag25h9, tag25h7, tag16h5
 tag_border:        1          # default: 1
 tag_threads:       2          # default: 2
 tag_decimate:      1.0        # default: 1.0

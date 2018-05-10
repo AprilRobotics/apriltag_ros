@@ -34,6 +34,7 @@
 #include "common/homography.h"
 #include "tag36h11.h"
 #include "tag36h10.h"
+#include "tag36h9.h"
 #include "tag25h9.h"
 #include "tag25h7.h"
 #include "tag16h5.h"
@@ -106,6 +107,10 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   {
     tf_ = tag36h10_create();
   }
+  else if (family_ == "tag36h9")
+  {
+    tf_ = tag36h9_create();
+  }
   else if (family_ == "tag25h9")
   {
     tf_ = tag25h9_create();
@@ -160,6 +165,10 @@ TagDetector::~TagDetector() {
   else if (family_ == "tag36h10")
   {
     tag36h10_destroy(tf_);
+  }
+  else if (family_ == "tag36h9")
+  {
+    tag36h9_destroy(tf_);
   }
   else if (family_ == "tag25h9")
   {

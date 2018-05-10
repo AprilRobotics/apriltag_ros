@@ -37,6 +37,7 @@ add_library(apriltags2
   src/tag25h7.c
   src/tag25h9.c
   src/tag36artoolkit.c
+  src/tag36h9.c
   src/tag36h10.c
   src/tag36h11.c
   src/time_util.c
