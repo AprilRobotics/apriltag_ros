@@ -97,6 +97,13 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     }
   }
 
+  // Optionally remove duplicate detections in scene. Defaults to removing
+  if(!pnh.getParam("remove_duplicates", remove_duplicates_))
+  {
+    ROS_WARN("remove_duplicates parameter not provided. Defaulting to true");
+    remove_duplicates_ = true;
+  }
+
   // Define the tag family whose tags should be searched for in the camera
   // images
   if (family_ == "tag36h11")
@@ -207,10 +214,14 @@ AprilTagDetectionArray TagDetector::detectTags (
   }
   detections_ = apriltag_detector_detect(td_, &apriltags2_image);
 
-  // Restriction: any tag ID can appear at most once in the scene. Thus, get all
-  // the tags visible in the scene and remove any tags with IDs of which there
-  // are multiple in the scene
-  removeDuplicates();
+  // If remove_dulpicates_ is set to true, then duplicate tags are not allowed.
+  // Thus any duplicate tag IDs visible in the scene must include at least 1
+  // erroneous detection. Remove any tags with duplicate IDs to ensure removal
+  // of these erroneous detections
+  if (remove_duplicates_)
+  {
+    removeDuplicates();
+  }
 
   // Compute the estimated translation and rotation individually for each
   // detected tag
