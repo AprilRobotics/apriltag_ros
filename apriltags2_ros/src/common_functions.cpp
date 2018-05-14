@@ -96,6 +96,16 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     }
   }
 
+  // Set an optional default_tag_size_ for tags not specified in parameters
+  if(pnh.getParam("default_tag_size", default_tag_size_))
+  {
+    use_default_tag_size_ = true;
+  }
+  else
+  {
+    use_default_tag_size_ = false;
+  }
+
   // Define the tag family whose tags should be searched for in the camera
   // images
   if (family_ == "tag36h11")
@@ -244,21 +254,35 @@ AprilTagDetectionArray TagDetector::detectTags (
     }
 
     // Find this tag's description amongst the standalone tags
-    // Print warning when a tag was found that is neither part of a
-    // bundle nor standalone (thus it is a tag in the environment
-    // which the user specified no description for, or Apriltags
-    // misdetected a tag (bad ID or a false positive)).
+    // If default_tag_size_ is not set, print warning when a tag was
+    // found that is neither part of a bundle nor standalone (thus
+    // it is a tag in the environment which the user specified no
+    // description for, or Apriltags misdetected a tag (bad ID or
+    // a false positive)).
+    bool standalone_fail;
+    double tag_size;
+    std::string frame_name;
+    standalone_fail = !is_part_of_bundle and !use_default_tag_size_;
     StandaloneTagDescription* standaloneDescription;
-    if (!findStandaloneTagDescription(tagID, standaloneDescription,
-                                      !is_part_of_bundle))
+    if (findStandaloneTagDescription(tagID, standaloneDescription,
+                                     standalone_fail))
     {
-      continue; 
+      tag_size = standaloneDescription->size();
+      frame_name = standaloneDescription->frame_name();
+    }
+    else if (use_default_tag_size_)
+    {
+      tag_size = default_tag_size_;
+      frame_name = camera_tf_frame_ + "_" +
+        boost::lexical_cast<std::string>(tagID);
+    }
+    else
+    {
+      continue;
     }
 
     //=================================================================
-    // The remainder of this for loop is concerned with standalone tag
-    // poses!
-    double tag_size = standaloneDescription->size();
+    // The remainder of this for loop is concerned with individual tag poses!
 
     // Get estimated tag pose in the camera frame.
     //
@@ -294,10 +318,10 @@ AprilTagDetectionArray TagDetector::detectTags (
     // Add the detection to the back of the tag detection array
     AprilTagDetection tag_detection;
     tag_detection.pose = tag_pose;
-    tag_detection.id.push_back(detection->id);
+    tag_detection.id.push_back(tagID);
     tag_detection.size.push_back(tag_size);
     tag_detection_array.detections.push_back(tag_detection);
-    detection_names.push_back(standaloneDescription->frame_name());
+    detection_names.push_back(frame_name);
   }
 
   //=================================================================
