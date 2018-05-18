@@ -152,7 +152,7 @@ void image_f32_gaussian_blur(image_f32_t *im, double sigma, int ksz)
 // remap all values to [0, 1]
 void image_f32_normalize(image_f32_t *im)
 {
-    float min = HUGE, max = -HUGE;
+    float min = HUGE_VALF, max = -HUGE_VALF;
 
     for (int y = 0; y < im->height; y++) {
         for (int x = 0; x < im->width; x++) {
