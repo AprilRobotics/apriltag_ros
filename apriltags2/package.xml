@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package>
+  <name>apriltags2</name>
+  <version>0.9.8</version>
+  <description>
+    A catkinized version of the exact original C code for AprilTags 2 algorithm
+    (version 2016-12-01 (0.9.8)).
+  </description>
+
+  <maintainer email="danylo.malyuta@gmail.com">Danylo Malyuta</maintainer>
+  <author email="danylo.malyuta@gmail.com">Danylo Malyuta</author>
+
+  <license>BSD</license>
+
+  <url type="website">https://april.eecs.umich.edu/software/apriltag.html</url>
+  <url type="website">http://www.ros.org/wiki/apriltags2_ros</url>
+  <url type="bugtracker">https://github.com/dmalyuta/apriltags2_ros/issues</url>
+  <url type="repository">https://github.com/dmalyuta/apriltags2_ros</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+</package>

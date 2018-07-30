@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<package>
+  <name>apriltags2_ros</name>
+  <version>1.0.0</version>
+  <description>
+    A ROS wrapper of the AprilTags 2 visual fiducial detection
+    algorithm. Provides full access to the core AprilTags 2 algorithm's
+    customizations and makes the tag detection image and detected tags' poses
+    available over ROS topics (including tf). The core AprilTags 2 algorithm is
+    extended to allow the detection of tag bundles and a bundle calibration
+    script is provided (bundle detection is more accurate than single tag
+    detection). Continuous (camera image stream) and single image detector nodes
+    are available.
+  </description>
+
+  <maintainer email="danylo.malyuta@gmail.com">Danylo Malyuta</maintainer>
+  <author email="danylo.malyuta@gmail.com">Danylo Malyuta</author>
+
+  <license>BSD</license>
+
+  <url type="website">http://www.ros.org/wiki/apriltags2_ros</url>
+  <url type="bugtracker">https://github.com/dmalyuta/apriltags2_ros/issues</url>
+  <url type="repository">https://github.com/dmalyuta/apriltags2_ros</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>apriltags2</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>eigen</build_depend>
+  <build_depend>libopencv-dev</build_depend>
+  <build_depend>cmake_modules</build_depend>
+  
+  <run_depend>tf</run_depend>
+  <run_depend>apriltags2</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>eigen</run_depend>
+  <run_depend>libopencv-dev</run_depend>
+</package>
