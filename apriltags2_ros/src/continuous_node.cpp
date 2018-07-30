@@ -32,7 +32,7 @@
 #include "apriltags2_ros/continuous_detector.h"
 
 int main(int argc, char **argv) {
-	ros::init(argc, argv, "apriltags2_ros");
+	ros::init(argc, argv, "apriltag2 continuous");
 
 	ros::NodeHandle nh;
 	ros::NodeHandle pnh("~");

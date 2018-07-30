@@ -46,6 +46,7 @@
 
 #include <apriltags2_ros/AnalyzeSingleImage.h>
 #include <apriltags2_ros/tag_bundle_description.h>
+#include <apriltags2_ros/tag_detector.h>
 
 namespace apriltags2_ros
 {

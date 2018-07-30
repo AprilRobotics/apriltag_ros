@@ -1,0 +1,3 @@
+[submodule "opencv_apps"]
+	path = opencv_apps
+	url = https://github.com/ros-perception/opencv_apps

@@ -42,6 +42,7 @@ add_message_files(
   FILES
   AprilTagDetectionArray.msg
   AprilTagDetection.msg
+  ZArray.msg
 )
 
 add_service_files(
@@ -58,7 +59,7 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS apriltags2 geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf
+  CATKIN_DEPENDS apriltags2 geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf opencv_apps
   DEPENDS Eigen OpenCV
 )
 
@@ -95,6 +96,13 @@ target_link_libraries(single_image_detector
 add_executable(continuous_node src/continuous_node.cpp)
 add_dependencies(continuous_node ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(continuous_node
+  continuous_detector
+  ${catkin_LIBRARIES}
+)
+
+add_executable(continuous_publisher_node src/continuous_publisher_node.cpp)
+add_dependencies(continuous_publisher_node ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(continuous_publisher_node
   continuous_detector
   ${catkin_LIBRARIES}
 )

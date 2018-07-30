@@ -21,9 +21,17 @@
 
 #include "apriltags2_ros/AprilTagDetection.h"
 #include "apriltags2_ros/AprilTagDetectionArray.h"
+#include <apriltags2_ros/ZArray.h>
 #include "apriltag.h"
 #include "standalone_tag_description.h"
 #include "tag_bundle_member.h"
+
+#include "common/homography.h"
+#include "tag36h11.h"
+#include "tag36h10.h"
+#include "tag25h9.h"
+#include "tag25h7.h"
+#include "tag16h5.h"
 
 namespace apriltags2_ros {
 
@@ -36,6 +44,10 @@ private:
 	// Remove detections of tags with the same ID
 	void removeDuplicates();
 
+	// Camera Information
+	cv_bridge::CvImagePtr image_;
+	sensor_msgs::CameraInfoConstPtr camera_info_;
+
 	// AprilTags 2 code's attributes
 	std::string family_;
 	int border_;
@@ -46,11 +58,6 @@ private:
 	int refine_decode_;
 	int refine_pose_;
 	int debug_;
-
-	// AprilTags 2 objects
-	apriltag_family_t *tf_;
-	apriltag_detector_t *td_;
-	zarray_t *detections_;
 
 	// Other members
 	std::map<int, StandaloneTagDescription> standalone_tag_descriptions_;
@@ -64,6 +71,11 @@ public:
 
 	TagDetector(ros::NodeHandle pnh);
 	~TagDetector();
+
+	// AprilTags 2 objects
+	apriltag_family_t *tf_;
+	apriltag_detector_t *td_;
+	zarray_t *detections_;
 
 	// Store standalone and bundle tag descriptions
 	std::map<int, StandaloneTagDescription> parseStandaloneTags(
@@ -84,9 +96,12 @@ public:
 			const Eigen::Quaternion<double> rot_quaternion,
 			const std_msgs::Header& header);
 
-	// Detect tags in an image
-	AprilTagDetectionArray detectTags(const cv_bridge::CvImagePtr& image,
+	// Update the camera info simply
+	void updateCameraInfo(const cv_bridge::CvImagePtr& image,
 			const sensor_msgs::CameraInfoConstPtr& camera_info);
+
+	// Detect tags in an image
+	AprilTagDetectionArray detectTags(const apriltags2_ros::ZArrayConstPtr zarray);
 
 	// Get the pose of the tag in the camera frame
 	// Returns homogeneous transformation matrix [R,t;[0 0 0 1]] which

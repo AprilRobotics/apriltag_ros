@@ -43,7 +43,23 @@
 #ifndef APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
 #define APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
 
+#include "apriltags2_ros/AprilTagDetection.h"
+#include "apriltags2_ros/AprilTagDetectionArray.h"
+#include "apriltag.h"
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/core/core.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+
+#include "standalone_tag_description.h"
+#include "tag_bundle_member.h"
+#include "tag_detector.h"
+
 #include <apriltags2_ros/tag_bundle_description.h>
+#include <apriltags2_ros/ZArray.h>
 
 namespace apriltags2_ros {
 
@@ -51,8 +67,9 @@ class ContinuousDetector {
 public:
 	ContinuousDetector(ros::NodeHandle& nh, ros::NodeHandle& pnh);
 
-	void imageCallback(const sensor_msgs::ImageConstPtr& image_rect,
-			const sensor_msgs::CameraInfoConstPtr& camera_info);
+	void imageCallback(const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info);
+
+	void zArrayCallback(const apriltags2_ros::ZArrayConstPtr zarray);
 
 private:
 	TagDetector tag_detector_;

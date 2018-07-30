@@ -51,23 +51,18 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <XmlRpcException.h>
-#include <cv_bridge/cv_bridge.h>
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
+#include <tf/transform_broadcaster.h>
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
-#include <tf/transform_broadcaster.h>
 
-#include "apriltags2_ros/AprilTagDetection.h"
-#include "apriltags2_ros/AprilTagDetectionArray.h"
-#include "apriltag.h"
-
-#include "standalone_tag_description.h"
-#include "tag_bundle_member.h"
-#include "tag_detector.h"
+#include <apriltags2_ros/tag_bundle_member.h>
 
 using namespace std;
 
