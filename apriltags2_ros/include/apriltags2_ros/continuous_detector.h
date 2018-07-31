@@ -65,7 +65,7 @@ namespace apriltags2_ros {
 
 class ContinuousDetector {
 public:
-	ContinuousDetector(ros::NodeHandle& nh, ros::NodeHandle& pnh);
+	ContinuousDetector(ros::NodeHandle& nh);
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info);
 
@@ -80,6 +80,7 @@ private:
 	image_transport::CameraSubscriber camera_image_subscriber_;
 	image_transport::Publisher tag_detections_image_publisher_;
 	ros::Publisher tag_detections_publisher_;
+	ros::Subscriber z_array_subscriber_;
 };
 
 } // namespace apriltags2_ros

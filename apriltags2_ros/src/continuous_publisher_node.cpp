@@ -7,11 +7,14 @@
 
 #include <apriltags2_ros/continuous_detector.h>
 #include <apriltags2_ros/tag_detector.h>
+#include <apriltags2_ros/ZArray.h>
 
 using namespace apriltags2_ros;
 using namespace cv;
+using namespace std;
 
 TagDetector* tag_detector;
+ros::Publisher pub;
 
 void imageCallback(const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info) {
 	cv::Mat gray_image;
@@ -36,7 +39,20 @@ void imageCallback(const sensor_msgs::ImageConstPtr& image_rect, const sensor_ms
 	zarray_t *detections;
 	detections = apriltag_detector_detect(tag_detector->td_, &apriltags2_image);
 
+	cout << detections->size << " " << detections->alloc << " " << detections->el_sz << endl;
 
+	apriltags2_ros::ZArray z;
+	z.size = detections->size;
+	z.alloc = detections->alloc;
+	z.el_sz = detections->el_sz;
+	for (unsigned i = 0; i < detections->alloc * detections->el_sz; ++i) {
+	    z.data.push_back(detections->data[i]);
+//	    cout << "[" << i << "] " << (unsigned) detections->data[i] << endl;
+	}
+
+	pub.publish(z);
+
+    zarray_destroy(detections);
 }
 
 int main(int argc, char **argv) {
@@ -49,5 +65,6 @@ int main(int argc, char **argv) {
 
 	image_transport::CameraSubscriber camera_image_subscriber = it_.subscribeCamera("image_rect", 1, &imageCallback);
 
+	pub = nh.advertise<apriltags2_ros::ZArray>("zarray", 1000);
 	ros::spin();
 }

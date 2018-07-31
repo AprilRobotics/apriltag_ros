@@ -35,9 +35,8 @@ int main(int argc, char **argv) {
 	ros::init(argc, argv, "apriltag2 continuous");
 
 	ros::NodeHandle nh;
-	ros::NodeHandle pnh("~");
 
-	apriltags2_ros::ContinuousDetector continuous_tag_detector(nh, pnh);
+	apriltags2_ros::ContinuousDetector continuous_tag_detector(nh);
 
 	ros::spin();
 }
