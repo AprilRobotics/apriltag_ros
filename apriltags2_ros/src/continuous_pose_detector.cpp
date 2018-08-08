@@ -30,11 +30,11 @@
  */
 
 #include <apriltags2_ros/continuous_pose_detector.h>
-#include <limits.h>
+#include <climits>
 #include <opencv_apps/Flow.h>
 #include <ctime>
 #include <std_srvs/Empty.h>
-#include <assert.h>
+#include <cassert>
 
 using namespace std;
 using namespace opencv_apps;
@@ -86,7 +86,7 @@ void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagD
 	tag_detections_publisher.publish(detectionPoseArray);
 
 	// Pop all the current transformations before this time stamp
-    while(flowQueue.size() != 0 && flowQueue.back().header.stamp < detectionArray->header.stamp) {
+    while(!flowQueue.empty() && flowQueue.back().header.stamp < detectionArray->header.stamp) {
         flowQueue.pop_back();
     }
     detectionArrayStamp = detectionArray->header.stamp;
@@ -111,21 +111,21 @@ float distanceBetweenTwoPoints(float x1, float y1, float x2, float y2) {
 }
 
 void ContinuousPoseDetector::opticalFlowCallback(const opencv_apps::FlowArrayStampedConstPtr flowArray) {
-	if (flowArray->flow.size() == 0)
+	if (!flowArray->flow.empty())
         return;
 
 	// Move the flow down the queue
 	flowQueue.push_front(*flowArray);
 
-	if (this->detectionArrayPtr == NULL)
+	if (this->detectionArrayPtr == nullptr)
 		return;
 
-    clock_t start = clock();
+//    clock_t start = clock();
 
-    for(auto &flow : flowQueue) {
-        cout << flow.header.seq << " ";
-    }
-    cout << endl;
+//    for(auto &flow : flowQueue) {
+//        cout << flow.header.seq << " ";
+//    }
+//    cout << endl;
 
     // Update the location of the 4 corners based
 	AprilTagDetectionArray updatedArray = detectionArray;
@@ -135,7 +135,7 @@ void ContinuousPoseDetector::opticalFlowCallback(const opencv_apps::FlowArraySta
         pastFlow++;
 
 	while(detectionArrayStamp < flowArray->header.stamp) {
-        cout << "Test " << detectionArrayStamp << " " << pastFlow->header.stamp << endl;
+//        cout << "Test " << detectionArrayStamp << " " << pastFlow->header.stamp << endl;
 
         for (auto &detection : updatedArray.detections) {
             // For the center point
@@ -190,7 +190,7 @@ void ContinuousPoseDetector::opticalFlowCallback(const opencv_apps::FlowArraySta
     tag_detections_publisher.publish(detectionPoseArray);
 
     // Throw out old images
-    while(imageQueue.size() != 0 && imageQueue.front()->header.stamp < flowArray->header.stamp) {
+    while(imageQueue.size() > 1 && imageQueue.front()->header.stamp < flowArray->header.stamp) {
         imageQueue.pop_front();
     }
 
@@ -200,8 +200,8 @@ void ContinuousPoseDetector::opticalFlowCallback(const opencv_apps::FlowArraySta
         tag_detections_image_publisher.publish(imageQueue.front()->toImageMsg());
     }
 
-    clock_t end = clock();
-    cout << "Optical Flow Callback took " << (end - start) / (double) CLOCKS_PER_SEC << endl;
+//    clock_t end = clock();
+//    cout << "Optical Flow Callback took " << (end - start) / (double) CLOCKS_PER_SEC << endl;
 }
 
 } // namespace apriltags2_ros
