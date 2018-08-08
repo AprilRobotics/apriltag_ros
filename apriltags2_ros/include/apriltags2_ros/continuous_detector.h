@@ -43,8 +43,6 @@
 #ifndef APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
 #define APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
 
-#include "apriltags2_ros/AprilTagDetection.h"
-#include "apriltags2_ros/AprilTagDetectionArray.h"
 #include "apriltag.h"
 
 #include <opencv2/opencv.hpp>
@@ -59,28 +57,24 @@
 #include "tag_detector.h"
 
 #include <apriltags2_ros/tag_bundle_description.h>
-#include <apriltags2_ros/ZArray.h>
+#include <apriltags2_msgs/AprilTagDetection.h>
+#include <apriltags2_msgs/AprilTagDetectionArray.h>
+#include <opencv_apps/FlowArrayStamped.h>
 
 namespace apriltags2_ros {
 
-class ContinuousDetector {
+class ContinuousDetector : public TagDetector {
+private:
+	bool draw_tag_detections_image;
+
+	image_transport::ImageTransport it;
+	image_transport::CameraSubscriber camera_image_subscriber;
+	ros::Publisher tag_detections_poses_publisher;
+
 public:
 	ContinuousDetector(ros::NodeHandle& nh);
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info);
-
-	void zArrayCallback(const apriltags2_ros::ZArrayConstPtr zarray);
-
-private:
-	TagDetector tag_detector_;
-	bool draw_tag_detections_image_;
-	cv_bridge::CvImagePtr cv_image_;
-
-	image_transport::ImageTransport it_;
-	image_transport::CameraSubscriber camera_image_subscriber_;
-	image_transport::Publisher tag_detections_image_publisher_;
-	ros::Publisher tag_detections_publisher_;
-	ros::Subscriber z_array_subscriber_;
 };
 
 } // namespace apriltags2_ros

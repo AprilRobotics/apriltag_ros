@@ -70,10 +70,13 @@ namespace apriltags2_ros {
 
 class TagBundleDescription {
 public:
-	std::map<int, int> id2idx_; // (id2idx_[<tag ID>]=<index in tags_>) mapping
+    // Bundle description
+    std::string name;
+    std::vector<TagBundleMember> tags;
+	std::map<int, int> id2idx; // (id2idx[<tag ID>]=<index in tags>) mapping
 
-	TagBundleDescription(std::string name) :
-			name_(name) {
+	TagBundleDescription(std::string name){
+	    this->name = name;
 	}
 
 	void addMemberTag(int id, double size, cv::Matx44d T_oi) {
@@ -81,43 +84,35 @@ public:
 		member.id = id;
 		member.size = size;
 		member.T_oi = T_oi;
-		tags_.push_back(member);
-		id2idx_[id] = tags_.size() - 1;
+		tags.push_back(member);
+		id2idx[id] = tags.size() - 1;
 	}
 
-	std::string name() const {
-		return name_;
-	}
 	// Get IDs of bundle member tags
 	std::vector<int> bundleIds() {
 		std::vector<int> ids;
-		for (unsigned int i = 0; i < tags_.size(); i++) {
-			ids.push_back(tags_[i].id);
+		for (unsigned int i = 0; i < tags.size(); i++) {
+			ids.push_back(tags[i].id);
 		}
 		return ids;
 	}
+
 	// Get sizes of bundle member tags
 	std::vector<double> bundleSizes() {
 		std::vector<double> sizes;
-		for (unsigned int i = 0; i < tags_.size(); i++) {
-			sizes.push_back(tags_[i].size);
+		for (unsigned int i = 0; i < tags.size(); i++) {
+			sizes.push_back(tags[i].size);
 		}
 		return sizes;
 	}
-	int memberID(int tagID) {
-		return tags_[id2idx_[tagID]].id;
-	}
+
 	double memberSize(int tagID) {
-		return tags_[id2idx_[tagID]].size;
-	}
-	cv::Matx44d memberT_oi(int tagID) {
-		return tags_[id2idx_[tagID]].T_oi;
+		return tags[id2idx[tagID]].size;
 	}
 
-private:
-	// Bundle description
-	std::string name_;
-	std::vector<TagBundleMember> tags_;
+	cv::Matx44d memberT_oi(int tagID) {
+		return tags[id2idx[tagID]].T_oi;
+	}
 };
 
 } // namespace apriltags2_ros

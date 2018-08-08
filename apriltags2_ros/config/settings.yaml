@@ -10,6 +10,6 @@ tag_refine_edges:  1          # default: 1
 tag_refine_decode: 0          # default: 0
 tag_refine_pose:   0          # default: 0
 tag_debug:         0          # default: 0
+
 # Other parameters
 publish_tf:        true       # default: false
-accelerated:       true       # default: true

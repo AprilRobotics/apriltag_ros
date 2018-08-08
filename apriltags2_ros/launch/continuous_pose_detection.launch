@@ -9,12 +9,18 @@
     <rosparam command="load" file="$(find apriltags2_ros)/config/settings.yaml" ns="$(arg node_namespace)"/>
     <rosparam command="load" file="$(find apriltags2_ros)/config/tags.yaml" ns="$(arg node_namespace)"/>
 
-    <!-- Translates 2D into 3D using SolvePnP -->
-    <node pkg="apriltags2_ros" type="continuous_detector_node" ns="$(arg node_namespace)" name="continuous_detector_node"
+    <param name="apriltags2_ros/publish_tag_detections_image" type="bool" value="true"/>
+    <param name="apriltags2_ros/camera_frame" type="str" value="$(arg camera_frame)"/>
+
+    <!-- 3D Pose Topic -->
+    <node pkg="apriltags2_ros" type="continuous_pose_detector_node" ns="$(arg node_namespace)" name="continuous_pose_detector_node"
           clear_params="false" output="screen" launch-prefix="$(arg launch_prefix)">
         <!-- Remap topics from those used in code to those on the ROS network -->
         <remap from="image_rect" to="$(arg camera_name)/$(arg image_topic)"/>
         <remap from="camera_info" to="$(arg camera_name)/camera_info"/>
 
     </node>
+
+    <include file="$(find apriltags2_ros)/launch/continuous_detection.launch" />
+
 </launch>

@@ -29,46 +29,37 @@
  * Technology.
  */
 
-#include "apriltags2_ros/continuous_detector.h"
+#include <apriltags2_ros/continuous_detector.h>
 
 namespace apriltags2_ros {
 
-ContinuousDetector::ContinuousDetector(ros::NodeHandle& nh) :
-		tag_detector_(nh), it_(nh) {
+	ContinuousDetector::ContinuousDetector(ros::NodeHandle& nh) :
+		TagDetector(nh), it(nh) {
 
-	draw_tag_detections_image_ = getAprilTagOption<bool>(nh, "publish_tag_detections_image", false);
+		nh.param<bool>("publish_tag_detections_image", draw_tag_detections_image, false);
 
-	camera_image_subscriber_ = it_.subscribeCamera("image_rect", 1, &ContinuousDetector::imageCallback, this);
-	z_array_subscriber_ = nh.subscribe("zarray", 1, &ContinuousDetector::zArrayCallback, this);
-	tag_detections_publisher_ = nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
-	if (draw_tag_detections_image_) tag_detections_image_publisher_ = it_.advertise("tag_detections_image", 1);
-}
+		// Subscribers
+		camera_image_subscriber = it.subscribeCamera("image_rect", 1, &ContinuousDetector::imageCallback, this);
 
-void ContinuousDetector::imageCallback( const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info) {
-	// Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
-	// AprilTags 2 on the iamge
-	try {
-		cv_image_ = cv_bridge::toCvCopy(image_rect, sensor_msgs::image_encodings::BGR8);
-
-	} catch (cv_bridge::Exception& e) {
-		ROS_ERROR("cv_bridge exception: %s", e.what());
-		return;
+		// Publishers
+		tag_detections_poses_publisher = nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
 	}
 
-	// Publish detected tags in the image by AprilTags 2
-	tag_detector_.updateCameraInfo(cv_image_, camera_info);
-}
+	void ContinuousDetector::imageCallback( const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info) {
+		// Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
+		// AprilTags 2 on the iamge
+		try {
+			this->cv_image = cv_bridge::toCvCopy(image_rect, sensor_msgs::image_encodings::BGR8);
+			this->camera_info = camera_info;
 
-void ContinuousDetector::zArrayCallback(const apriltags2_ros::ZArrayConstPtr zarray) {
+            AprilTagDetectionArray detectionArray;
+            detectTags(detectionArray, image_rect, camera_info);
+            tag_detections_poses_publisher.publish(detectionArray);
 
-	AprilTagDetectionArray detectionArray = tag_detector_.detectTags(zarray);
-//	tag_detections_publisher_.publish(detectionArray);
-
-	// Publish the camera image overlaid by outlines of the detected tags and their payload values
-//	if (draw_tag_detections_image_) {
-//		tag_detector_.drawDetections(cv_image_);
-//		tag_detections_image_publisher_.publish(cv_image_->toImageMsg());
-//	}
-}
+		} catch (cv_bridge::Exception& e) {
+			ROS_ERROR("cv_bridge exception: %s", e.what());
+			return;
+		}
+	}
 
 } // namespace apriltags2_ros

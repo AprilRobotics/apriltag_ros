@@ -28,45 +28,71 @@
  * policies, either expressed or implied, of the California Institute of
  * Technology.
  *
- ** single_image_detector.h ****************************************************
+ ** continuous_detector.h ******************************************************
  *
- * Wrapper class of TagDetector class which calls TagDetector::detectTags on a
- * an image stored at a specified load path and stores the output at a specified
- * save path.
+ * Wrapper class of TagDetector class which calls TagDetector::detectTags on
+ * each newly arrived image published by a camera.
  *
  * $Revision: 1.0 $
- * $Date: 2017/12/17 13:33:40 $
+ * $Date: 2017/12/17 13:25:52 $
  * $Author: dmalyuta $
  *
  * Originator:        Danylo Malyuta, JPL
  ******************************************************************************/
 
-#ifndef APRILTAGS2_ROS_SINGLE_IMAGE_DETECTOR_H
-#define APRILTAGS2_ROS_SINGLE_IMAGE_DETECTOR_H
+#ifndef APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
+#define APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
 
-#include <apriltags2_ros/AnalyzeSingleImage.h>
+#include "apriltag.h"
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/core/core.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+
+#include "standalone_tag_description.h"
+#include "tag_bundle_member.h"
+#include "tag_detector.h"
+
 #include <apriltags2_ros/tag_bundle_description.h>
-#include <apriltags2_ros/tag_detector.h>
+#include <apriltags2_msgs/AprilTagDetection.h>
+#include <apriltags2_msgs/AprilTagDetectionArray.h>
+#include <opencv_apps/FlowArrayStamped.h>
+#include <deque>
 
-namespace apriltags2_ros
-{
+using namespace std;
 
-class SingleImageDetector
-{
- private:
-  TagDetector tag_detector_;
-  ros::ServiceServer single_image_analysis_service_;
+namespace apriltags2_ros {
 
-  ros::Publisher tag_detections_publisher_;
-  
- public:
-  SingleImageDetector(ros::NodeHandle& nh, ros::NodeHandle& pnh);
+class ContinuousPoseDetector : public TagDetector {
+private:
+	bool draw_tag_detections_image;
+	bool optical_flow_accelerated;
 
-  // The function which provides the single image analysis service
-  bool analyzeImage(apriltags2_ros::AnalyzeSingleImage::Request& request,
-                     apriltags2_ros::AnalyzeSingleImage::Response& response);
+	deque<opencv_apps::FlowArrayStamped> flowQueue;
+	deque<CvImagePtr> imageQueue;
+	ros::Time detectionArrayStamp;
+
+	image_transport::ImageTransport it;
+
+	image_transport::CameraSubscriber camera_image_subscriber;
+	ros::Subscriber april_tag_detection_array_subscriber;
+	ros::Subscriber optical_flow_subscriber;
+	ros::ServiceClient optical_flow_client;
+
+    image_transport::Publisher tag_detections_image_publisher;
+    ros::Publisher tag_detections_publisher;
+
+public:
+	ContinuousPoseDetector(ros::NodeHandle& nh);
+
+	void imageCallback(const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info);
+	void location2DCallback(const AprilTagDetectionArrayConstPtr detectionArray);
+	void opticalFlowCallback(const opencv_apps::FlowArrayStampedConstPtr flowArray);
 };
 
 } // namespace apriltags2_ros
 
-#endif // APRILTAGS2_ROS_SINGLE_IMAGE_DETECTOR_H
+#endif // APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
