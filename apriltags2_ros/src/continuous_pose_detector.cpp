@@ -55,8 +55,9 @@ ContinuousPoseDetector::ContinuousPoseDetector(ros::NodeHandle& nh) :
 	tag_detections_publisher = nh.advertise<AprilTagDetectionPoseArray>("tag_pose_detections", 5);
 
 	// Publishers
-	if (draw_tag_detections_image)
-		tag_detections_image_publisher = it.advertise("tag_detections_image", 5);
+	if (draw_tag_detections_image) {
+        tag_detections_image_publisher = it.advertise("tag_detections_image", 5);
+    }
 
 	if (optical_flow_accelerated) {
         optical_flow_subscriber = nh.subscribe("/lk_flow/flows", 10, &ContinuousPoseDetector::opticalFlowCallback, this);
@@ -70,7 +71,8 @@ void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& im
 	try {
 		this->cv_image = cv_bridge::toCvCopy(image_rect, sensor_msgs::image_encodings::BGR8);
 		this->camera_info = camera_info;
-		this->imageQueue.push_back(this->cv_image);
+        this->imageQueue.push_back(this->cv_image);
+
 	} catch (cv_bridge::Exception& e) {
 		ROS_ERROR("cv_bridge exception: %s", e.what());
 		return;
@@ -85,7 +87,7 @@ void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagD
 
     // Reiniatialize the optical flow points
     if (optical_flow_accelerated) {
-        if (step++ % 1 == 0) {
+        if (step++ % 5 == 0) {
             opencv_apps::LKFlowInitializePoints pts;
             for(auto &det : detectionArray->detections) {
                 for (auto &p : det.p) {
@@ -103,9 +105,11 @@ void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagD
         }
     }
 
-	AprilTagDetectionPoseArray detectionPoseArray;
-	findTagPose(detectionPoseArray, *detectionArray);
-	tag_detections_publisher.publish(detectionPoseArray);
+    if (!optical_flow_accelerated) {
+        AprilTagDetectionPoseArray detectionPoseArray;
+        findTagPose(detectionPoseArray, *detectionArray);
+        tag_detections_publisher.publish(detectionPoseArray);
+    }
 
 	// Pop all the current transformations before this time stamp
     while(!flowQueue.empty() && flowQueue.back().header.stamp < detectionArray->header.stamp) {
@@ -115,8 +119,16 @@ void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagD
 
 	// Publish the camera image overlaid by outlines of the detected tags and their payload values
 	if (draw_tag_detections_image && !optical_flow_accelerated) {
-		drawDetections(this->detectionArray, cv_image);
-		tag_detections_image_publisher.publish(cv_image->toImageMsg());
+        // Throw out old images
+        while(imageQueue.size() > 1 && imageQueue.front()->header.stamp < detectionArray->header.stamp) {
+            imageQueue.pop_front();
+        }
+
+        // Publish the camera image overlaid by outlines of the detected tags and their payload values
+        if (draw_tag_detections_image) {
+            drawDetections(*detectionArray, imageQueue.front());
+            tag_detections_image_publisher.publish(imageQueue.front()->toImageMsg());
+        }
 	}
 }
 
@@ -136,11 +148,6 @@ void ContinuousPoseDetector::opticalFlowCallback(const opencv_apps::FlowArraySta
 
     clock_t start = clock();
 
-    for(auto &flow : flowQueue) {
-        cout << flow.header.seq << " ";
-    }
-    cout << endl;
-
     // Update the location of the 4 corners based
 	AprilTagDetectionArray updatedArray = detectionArray;
 
@@ -149,7 +156,7 @@ void ContinuousPoseDetector::opticalFlowCallback(const opencv_apps::FlowArraySta
         pastFlow++;
 
 	while(detectionArrayStamp < flowArray->header.stamp) {
-        cout << "Test " << detectionArrayStamp << " " << pastFlow->header.stamp << endl;
+        cout << "Test " << detectionArrayStamp << " " << flowArray->header.stamp << endl;
 
         for (auto &detection : updatedArray.detections) {
             // For the center point
@@ -192,7 +199,8 @@ void ContinuousPoseDetector::opticalFlowCallback(const opencv_apps::FlowArraySta
         }
 
         detectionArrayStamp = pastFlow->header.stamp;
-        pastFlow++;
+        if (pastFlow != flowQueue.rend())
+            pastFlow++;
     }
 
     // Find the object in the image itself
@@ -204,7 +212,7 @@ void ContinuousPoseDetector::opticalFlowCallback(const opencv_apps::FlowArraySta
     tag_detections_publisher.publish(detectionPoseArray);
 
     // Throw out old images
-    while(imageQueue.size() > 1 && imageQueue.front()->header.stamp < flowArray->header.stamp) {
+    while(imageQueue.size() > 1 && imageQueue.front()->header.stamp <= flowArray->header.stamp) {
         imageQueue.pop_front();
     }
 
