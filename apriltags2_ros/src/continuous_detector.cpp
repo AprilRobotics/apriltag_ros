@@ -39,10 +39,10 @@ namespace apriltags2_ros {
 		nh.param<bool>("publish_tag_detections_image", draw_tag_detections_image, false);
 
 		// Subscribers
-		camera_image_subscriber = it.subscribeCamera("image_rect", 1, &ContinuousDetector::imageCallback, this);
+		camera_image_subscriber = it.subscribeCamera("image_rect", 2, &ContinuousDetector::imageCallback, this);
 
 		// Publishers
-		tag_detections_poses_publisher = nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
+		tag_detections_poses_publisher = nh.advertise<AprilTagDetectionArray>("tag_detections", 5);
 	}
 
 	void ContinuousDetector::imageCallback( const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info) {

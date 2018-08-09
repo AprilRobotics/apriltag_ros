@@ -50,13 +50,13 @@ ContinuousPoseDetector::ContinuousPoseDetector(ros::NodeHandle& nh) :
 	nh.param<bool>("optical_flow_accelerated", optical_flow_accelerated, false);
 
 	// Subscribers
-	camera_image_subscriber = it.subscribeCamera("image_rect", 1, &ContinuousPoseDetector::imageCallback, this);
+	camera_image_subscriber = it.subscribeCamera("image_rect", 5, &ContinuousPoseDetector::imageCallback, this);
 	april_tag_detection_array_subscriber = nh.subscribe("tag_detections", 5, &ContinuousPoseDetector::location2DCallback, this);
-	tag_detections_publisher = nh.advertise<AprilTagDetectionPoseArray>("tag_pose_detections", 1);
+	tag_detections_publisher = nh.advertise<AprilTagDetectionPoseArray>("tag_pose_detections", 5);
 
 	// Publishers
 	if (draw_tag_detections_image)
-		tag_detections_image_publisher = it.advertise("tag_detections_image", 1);
+		tag_detections_image_publisher = it.advertise("tag_detections_image", 5);
 
 	if (optical_flow_accelerated) {
         optical_flow_subscriber = nh.subscribe("/lk_flow/flows", 10, &ContinuousPoseDetector::opticalFlowCallback, this);
