@@ -32,6 +32,8 @@
 #include <apriltags2_ros/continuous_pose_detector.h>
 #include <climits>
 #include <opencv_apps/Flow.h>
+#include <opencv_apps/LKFlowInitializePoints.h>
+#include <opencv_apps/Point2D.h>
 #include <ctime>
 #include <std_srvs/Empty.h>
 #include <cassert>
@@ -58,7 +60,7 @@ ContinuousPoseDetector::ContinuousPoseDetector(ros::NodeHandle& nh) :
 
 	if (optical_flow_accelerated) {
         optical_flow_subscriber = nh.subscribe("/lk_flow/flows", 10, &ContinuousPoseDetector::opticalFlowCallback, this);
-        optical_flow_client = nh.serviceClient<std_srvs::Empty>("/lk_flow/initialize_points");
+        optical_flow_client = nh.serviceClient<opencv_apps::LKFlowInitializePoints>("/lk_flow/initialize_points");
     }
 }
 
@@ -81,6 +83,26 @@ void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagD
 	this->detectionArray = *detectionArray;
 	this->detectionArrayPtr = &this->detectionArray;
 
+    // Reiniatialize the optical flow points
+    if (optical_flow_accelerated) {
+        if (step++ % 10 == 0) {
+            opencv_apps::LKFlowInitializePoints pts;
+            for(auto &det : detectionArray->detections) {
+                for (auto &p : det.p) {
+                    opencv_apps::Point2D pt;
+                    pt.x = p.x;
+                    pt.y = p.y;
+                    pts.request.points.points.push_back(pt);
+                }
+                opencv_apps::Point2D pt;
+                pt.x = det.c.x;
+                pt.y = det.c.y;
+                pts.request.points.points.push_back(pt);
+            }
+            optical_flow_client.call(pts);
+        }
+    }
+
 	AprilTagDetectionPoseArray detectionPoseArray;
 	findTagPose(detectionPoseArray, *detectionArray);
 	tag_detections_publisher.publish(detectionPoseArray);
@@ -96,14 +118,6 @@ void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagD
 		drawDetections(this->detectionArray, cv_image);
 		tag_detections_image_publisher.publish(cv_image->toImageMsg());
 	}
-
-	// Reiniatialize the optical flow points
-    if (optical_flow_accelerated) {
-        if (step++ % 10 == 0) {
-            std_srvs::Empty e;
-            optical_flow_client.call(e);
-        }
-    }
 }
 
 float distanceBetweenTwoPoints(float x1, float y1, float x2, float y2) {
