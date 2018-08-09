@@ -85,7 +85,7 @@ void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagD
 
     // Reiniatialize the optical flow points
     if (optical_flow_accelerated) {
-        if (step++ % 10 == 0) {
+        if (step++ % 1 == 0) {
             opencv_apps::LKFlowInitializePoints pts;
             for(auto &det : detectionArray->detections) {
                 for (auto &p : det.p) {
