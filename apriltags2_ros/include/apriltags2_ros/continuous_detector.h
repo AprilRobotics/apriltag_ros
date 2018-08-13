@@ -59,7 +59,6 @@
 #include <apriltags2_ros/tag_bundle_description.h>
 #include <apriltags2_msgs/AprilTagDetection.h>
 #include <apriltags2_msgs/AprilTagDetectionArray.h>
-#include <opencv_apps/FlowArrayStamped.h>
 
 namespace apriltags2_ros {
 

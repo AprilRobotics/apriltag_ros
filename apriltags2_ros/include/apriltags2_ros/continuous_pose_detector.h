@@ -57,10 +57,11 @@
 #include "tag_detector.h"
 
 #include <apriltags2_ros/tag_bundle_description.h>
+#include <apriltags2_ros/apriltag_detection_transform.h>
 #include <apriltags2_msgs/AprilTagDetection.h>
 #include <apriltags2_msgs/AprilTagDetectionArray.h>
-#include <opencv_apps/FlowArrayStamped.h>
 #include <deque>
+#include <list>
 
 using namespace std;
 
@@ -71,16 +72,19 @@ private:
 	bool draw_tag_detections_image;
 	bool optical_flow_accelerated;
 
-	deque<opencv_apps::FlowArrayStamped> flowQueue;
-	deque<CvImagePtr> imageQueue;
-	ros::Time detectionArrayStamp;
+	// Queues for the detector
+	list<CvImageConstPtr> imageList;
+	list<AprilTagDetectionArray> detectionArrayList;
+    list<AprilTagDetectionArray> detectionArrayCorrectedList;
+	list<AprilTagDetectionTransformArray> detectionArrayTransformList;
+
+	// Optical Flow
+    vector<cv::Point2f> points[2];
 
 	image_transport::ImageTransport it;
 
 	image_transport::CameraSubscriber camera_image_subscriber;
 	ros::Subscriber april_tag_detection_array_subscriber;
-	ros::Subscriber optical_flow_subscriber;
-	ros::ServiceClient optical_flow_client;
 
     image_transport::Publisher tag_detections_image_publisher;
     ros::Publisher tag_detections_publisher;
@@ -90,7 +94,10 @@ public:
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info);
 	void location2DCallback(const AprilTagDetectionArrayConstPtr detectionArray);
-	void opticalFlowCallback(const opencv_apps::FlowArrayStampedConstPtr flowArray);
+
+    void applyTransformToDetectionArray(AprilTagDetectionArray* detectionArray, AprilTagDetectionTransformArray* transformArray, float ratio = 1.0f);
+    void findTransformOpticalFlow(CvImageConstPtr& before, CvImageConstPtr& after, AprilTagDetectionArray* detectionArray, AprilTagDetectionTransformArray* detectionTransformArray);
+
 };
 
 } // namespace apriltags2_ros

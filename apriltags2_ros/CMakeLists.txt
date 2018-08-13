@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   tf
   cmake_modules
-  opencv_apps
   std_srvs
 )
 

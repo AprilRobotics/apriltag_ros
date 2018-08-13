@@ -418,7 +418,7 @@ namespace apriltags2_ros {
         return pose;
     }
 
-    void TagDetector::drawDetections(const AprilTagDetectionArray& detectionArray, CvImagePtr img) {
+    void TagDetector::drawDetections(const AprilTagDetectionArray& detectionArray, CvImagePtr& img) {
 
         for (const auto &detection : detectionArray.detections) {
             int id = detection.id;
@@ -474,7 +474,6 @@ namespace apriltags2_ros {
                             (int) (detection.c.y + textsize.height / 2)), fontface,
                             fontscale, cv::Scalar(0xff, 0x99, 0), 2);
 
-            cv_image = img;
         }
     }
 

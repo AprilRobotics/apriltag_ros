@@ -46,7 +46,8 @@ namespace apriltags2_ros {
     class TagDetector {
     protected:
         // Camera Information
-        CvImagePtr cv_image;
+        CvImageConstPtr cv_image;
+        CvImagePtr cv_image_drawn;
         CameraInfoConstPtr camera_info;
         AprilTagDetectionArray detectionArray;
         AprilTagDetectionArray* detectionArrayPtr;
@@ -102,7 +103,7 @@ namespace apriltags2_ros {
         void addObjectPoints(double s, cv::Matx44d T_oi, std::vector<cv::Point3d> &objectPoints) const;
 
         // Draw the detected tags' outlines and payload values on the image
-        void drawDetections(const AprilTagDetectionArray& detectionArray, CvImagePtr img);
+        void drawDetections(const AprilTagDetectionArray& detectionArray, CvImagePtr& img);
     };
 
 }

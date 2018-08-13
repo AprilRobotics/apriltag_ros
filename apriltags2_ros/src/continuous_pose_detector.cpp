@@ -1,45 +1,10 @@
-/**
- * Copyright (c) 2017, California Institute of Technology.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * The views and conclusions contained in the software and documentation are
- * those of the authors and should not be interpreted as representing official
- * policies, either expressed or implied, of the California Institute of
- * Technology.
- */
-
+#include <apriltags2_ros/apriltag_detection_transform.h>
 #include <apriltags2_ros/continuous_pose_detector.h>
 #include <climits>
-#include <opencv_apps/Flow.h>
-#include <opencv_apps/LKFlowInitializePoints.h>
-#include <opencv_apps/Point2D.h>
 #include <ctime>
-#include <std_srvs/Empty.h>
 #include <cassert>
 
 using namespace std;
-using namespace opencv_apps;
 
 namespace apriltags2_ros {
 
@@ -58,172 +23,166 @@ ContinuousPoseDetector::ContinuousPoseDetector(ros::NodeHandle& nh) :
 	if (draw_tag_detections_image) {
         tag_detections_image_publisher = it.advertise("tag_detections_image", 5);
     }
+}
 
-	if (optical_flow_accelerated) {
-        optical_flow_subscriber = nh.subscribe("/lk_flow/flows", 10, &ContinuousPoseDetector::opticalFlowCallback, this);
-        optical_flow_client = nh.serviceClient<opencv_apps::LKFlowInitializePoints>("/lk_flow/initialize_points");
+void ContinuousPoseDetector::applyTransformToDetectionArray(AprilTagDetectionArray* detectionArray, AprilTagDetectionTransformArray* transformArray, float ratio) {
+    for (unsigned i = 0; i < detectionArray->detections.size(); ++i) {
+        int id = detectionArray->detections[i].id;
+
+        // Find the correct transform
+        int jid = -1;
+        for (unsigned j = 0; j < transformArray->tagTransforms.size(); ++j) {
+            if (transformArray->tagTransforms[j].id == id) {
+                jid = j;
+                break;
+            }
+        }
+        if (jid == -1) continue;
+
+        detectionArray->detections[i].c.x += transformArray->tagTransforms[jid].c_delta.delX * ratio;
+        detectionArray->detections[i].c.y += transformArray->tagTransforms[jid].c_delta.delY * ratio;
+
+        for (unsigned c = 0; c < 4; ++c) {
+            detectionArray->detections[i].p[c].x += transformArray->tagTransforms[jid].p_delta[c].delX * ratio;
+            detectionArray->detections[i].p[c].y += transformArray->tagTransforms[jid].p_delta[c].delY * ratio;
+        }
     }
+}
+
+void ContinuousPoseDetector::findTransformOpticalFlow(CvImageConstPtr& before, CvImageConstPtr& after, AprilTagDetectionArray* detectionArray, AprilTagDetectionTransformArray* detectionTransformArray) {
+    if (detectionArray->detections.empty())
+        return;
+
+    cv::Mat grayBefore, grayAfter;
+    cv::cvtColor(before->image, grayBefore, cv::COLOR_BGR2GRAY );
+    cv::cvtColor(after->image, grayAfter, cv::COLOR_BGR2GRAY );
+
+    points[0].clear();
+    points[1].clear();
+    for (const auto &detection : detectionArray->detections) {
+        points[0].push_back(cv::Point2f(detection.c.x, detection.c.y));
+        for (unsigned i = 0; i < 4; ++i) {
+            points[0].push_back(cv::Point2f(detection.p[i].x, detection.p[i].y));
+        }
+    }
+
+    cv::TermCriteria termcrit(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 0.03);
+    cv::Size subPixWinSize(10,10), winSize(31,31);
+    cv::cornerSubPix(grayBefore, points[0], subPixWinSize, cv::Size(-1,-1), termcrit);
+
+    vector<uchar> status;
+    vector<float> err;
+    cv::calcOpticalFlowPyrLK(grayBefore, grayAfter, points[0], points[1], status, err, winSize, 3, termcrit);
+
+    assert(points[0].size() == points[1].size());
+
+    for(unsigned i = 0; i < detectionArray->detections.size(); ++i) {
+        AprilTagDetectionTransform tagDetectionTransform;
+        tagDetectionTransform.id = detectionArray->detections[i].id;
+
+        tagDetectionTransform.c_delta.delX = points[1][i * 5].x - points[0][i * 5].x;
+        tagDetectionTransform.c_delta.delY = points[1][i * 5].y - points[0][i * 5].y;
+        for (unsigned j = 0; j < 4; ++j) {
+            tagDetectionTransform.p_delta[j].delX = points[1][i * 5 + j + 1].x - points[0][i * 5 + j + 1].x;
+            tagDetectionTransform.p_delta[j].delY = points[1][i * 5 + j + 1].y - points[0][i * 5 + j + 1].y;
+        }
+        detectionTransformArray->tagTransforms.push_back(tagDetectionTransform);
+    }
+    detectionTransformArray->from = before->header.stamp;
+    detectionTransformArray->to = after->header.stamp;
 }
 
 void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info) {
 	// Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
 	// AprilTags 2 on the iamge
 	try {
-		this->cv_image = cv_bridge::toCvCopy(image_rect, sensor_msgs::image_encodings::BGR8);
-		this->camera_info = camera_info;
-        this->imageQueue.push_back(this->cv_image);
+		this->cv_image = cv_bridge::toCvShare(image_rect, sensor_msgs::image_encodings::BGR8);
+		this->cv_image_drawn = cv_bridge::toCvCopy(image_rect, sensor_msgs::image_encodings::BGR8);
+
+        this->camera_info = camera_info;
+        this->imageList.push_back(this->cv_image);
 
 	} catch (cv_bridge::Exception& e) {
 		ROS_ERROR("cv_bridge exception: %s", e.what());
 		return;
 	}
+
+    // 1. Find the pose transformation using optical flow
+    if (!detectionArrayCorrectedList.empty() && imageList.size() >= 2) {
+        CvImageConstPtr latestImage = imageList.back();
+        CvImageConstPtr secondlatestImage = *(++imageList.rbegin());
+
+        ros::Time latestImageTime = latestImage->header.stamp;
+        ros::Time secondLatestImageTime = secondlatestImage->header.stamp;
+
+//        cout << latestImageTime.sec << " " << latestImageTime.nsec << endl;
+//        cout << secondLatestImageTime.sec << " " << secondLatestImageTime.nsec << endl;
+
+        assert(latestImageTime != secondLatestImageTime);
+
+        AprilTagDetectionArray* secondLatestPose = nullptr;
+
+        for (auto &detectionArray : detectionArrayCorrectedList) {
+            if(detectionArray.header.stamp == secondLatestImageTime) {
+                secondLatestPose = &detectionArray;
+                break;
+            }
+        }
+
+        if (secondLatestPose != nullptr) {
+            AprilTagDetectionTransformArray transformArray;
+            findTransformOpticalFlow(secondlatestImage, latestImage, secondLatestPose, &transformArray);
+            detectionArrayTransformList.push_back(transformArray);
+        }
+    }
+
+    // 2. Find the corrected pose using the past poses
+    if (!detectionArrayList.empty()) {
+        ros::Time image_time = cv_image->header.stamp;
+        ros::Time latest_pose_time = detectionArrayList.back().header.stamp;
+
+        AprilTagDetectionArray dArrayCurrent = detectionArrayList.back();
+        dArrayCurrent.header.stamp = image_time;
+
+        for (auto &transform : detectionArrayTransformList) {
+            if (transform.from >= latest_pose_time && transform.to <= image_time) {
+                applyTransformToDetectionArray(&dArrayCurrent, &transform);
+            }
+        }
+
+        detectionArrayCorrectedList.push_back(dArrayCurrent);
+
+        // Draw the corrected pose on the image
+        drawDetections(dArrayCurrent, cv_image_drawn);
+        if (draw_tag_detections_image) {
+            tag_detections_image_publisher.publish(cv_image_drawn->toImageMsg());
+        }
+
+        // Find the tag poses
+        AprilTagDetectionPoseArray poseArray;
+        findTagPose(poseArray, dArrayCurrent);
+        tag_detections_publisher.publish(poseArray);
+    }
+
+    // 3. Delete old stuff from the lists
+    ros::Time image_time = cv_image->header.stamp;
+	ros::Duration duration(1.0);
+	ros::Time too_old = image_time - duration;
+
+    imageList.remove_if([&too_old](CvImageConstPtr& img) {return img->header.stamp < too_old; });
+    detectionArrayList.remove_if([&too_old](AprilTagDetectionArray& det) {return det.header.stamp < too_old; });
+    detectionArrayCorrectedList.remove_if([&too_old](AprilTagDetectionArray& det) {return det.header.stamp < too_old; });
+    detectionArrayTransformList.remove_if([&too_old](AprilTagDetectionTransformArray& det) {return det.to < too_old; });
+
+    cout << "Queue sizes: " << imageList.size() << " " << detectionArrayList.size() << " " << detectionArrayCorrectedList.size() << " " << detectionArrayTransformList.size() << " " << endl;
 }
 
-int step = 1;
 void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagDetectionArrayConstPtr detectionArray) {
-
-	this->detectionArray = *detectionArray;
-	this->detectionArrayPtr = &this->detectionArray;
-
-    // Reiniatialize the optical flow points
-    if (optical_flow_accelerated) {
-        if (step++ % 5 == 0) {
-            opencv_apps::LKFlowInitializePoints pts;
-            for(auto &det : detectionArray->detections) {
-                for (auto &p : det.p) {
-                    opencv_apps::Point2D pt;
-                    pt.x = p.x;
-                    pt.y = p.y;
-                    pts.request.points.points.push_back(pt);
-                }
-                opencv_apps::Point2D pt;
-                pt.x = det.c.x;
-                pt.y = det.c.y;
-                pts.request.points.points.push_back(pt);
-            }
-            optical_flow_client.call(pts);
-        }
-    }
-
-    if (!optical_flow_accelerated) {
-        AprilTagDetectionPoseArray detectionPoseArray;
-        findTagPose(detectionPoseArray, *detectionArray);
-        tag_detections_publisher.publish(detectionPoseArray);
-    }
-
-	// Pop all the current transformations before this time stamp
-    while(!flowQueue.empty() && flowQueue.back().header.stamp < detectionArray->header.stamp) {
-        flowQueue.pop_back();
-    }
-    detectionArrayStamp = detectionArray->header.stamp;
-
-	// Publish the camera image overlaid by outlines of the detected tags and their payload values
-	if (draw_tag_detections_image && !optical_flow_accelerated) {
-        // Throw out old images
-        while(imageQueue.size() > 1 && imageQueue.front()->header.stamp < detectionArray->header.stamp) {
-            imageQueue.pop_front();
-        }
-
-        // Publish the camera image overlaid by outlines of the detected tags and their payload values
-        if (draw_tag_detections_image) {
-            drawDetections(*detectionArray, imageQueue.front());
-            tag_detections_image_publisher.publish(imageQueue.front()->toImageMsg());
-        }
-	}
+    detectionArrayList.push_back(*detectionArray);
 }
 
 float distanceBetweenTwoPoints(float x1, float y1, float x2, float y2) {
-	return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
-}
-
-void ContinuousPoseDetector::opticalFlowCallback(const opencv_apps::FlowArrayStampedConstPtr flowArray) {
-	if (flowArray->flow.empty())
-        return;
-
-	// Move the flow down the queue
-	flowQueue.push_front(*flowArray);
-
-	if (this->detectionArrayPtr == nullptr)
-		return;
-
-    clock_t start = clock();
-
-    // Update the location of the 4 corners based
-	AprilTagDetectionArray updatedArray = detectionArray;
-
-    auto pastFlow = flowQueue.rbegin();
-    while(pastFlow != flowQueue.rend() && pastFlow->header.stamp <= detectionArrayStamp)
-        pastFlow++;
-
-	while(detectionArrayStamp < flowArray->header.stamp) {
-        cout << "Test " << detectionArrayStamp << " " << flowArray->header.stamp << endl;
-
-        for (auto &detection : updatedArray.detections) {
-            // For the center point
-            float closestDist = numeric_limits<float>::max();
-            int closestFlowIndex = 0;
-
-            for (unsigned i = 0; i < flowArray->flow.size(); ++i) {
-                float dist = distanceBetweenTwoPoints(detection.c.x, detection.c.y, pastFlow->flow[i].point.x,
-                                                      pastFlow->flow[i].point.y);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closestFlowIndex = i;
-                }
-            }
-
-            detection.c.x = detection.c.x + pastFlow->flow[closestFlowIndex].velocity.x;
-            detection.c.y = detection.c.y + pastFlow->flow[closestFlowIndex].velocity.y;
-
-//		cout << detection.c.x << " " << detection.c.y << " " << flowArray->flow[closestFlowIndex].point.x << " " << flowArray->flow[closestFlowIndex].point.y << endl;
-//		cout << closestFlowIndex << " " << closestDist << " " << flowArray->flow[closestFlowIndex].velocity.x << " " << flowArray->flow[closestFlowIndex].velocity.y << endl;
-
-            for (auto &point : detection.p) {
-
-                // For the center point
-                float closestDist = numeric_limits<float>::max();
-                int closestFlowIndex = 0;
-
-                for (unsigned i = 0; i < flowArray->flow.size(); ++i) {
-                    float dist = distanceBetweenTwoPoints(point.x, point.y, pastFlow->flow[i].point.x,
-                                                          pastFlow->flow[i].point.y);
-                    if (dist < closestDist) {
-                        closestDist = dist;
-                        closestFlowIndex = i;
-                    }
-                }
-
-                point.x = point.x + pastFlow->flow[closestFlowIndex].velocity.x;
-                point.y = point.y + pastFlow->flow[closestFlowIndex].velocity.y;
-            }
-        }
-
-        detectionArrayStamp = pastFlow->header.stamp;
-        if (pastFlow != flowQueue.rend())
-            pastFlow++;
-    }
-
-    // Find the object in the image itself
-    this->detectionArray = updatedArray;
-
-    // Update the detector
-    AprilTagDetectionPoseArray detectionPoseArray;
-    findTagPose(detectionPoseArray, detectionArray);
-    tag_detections_publisher.publish(detectionPoseArray);
-
-    // Throw out old images
-    while(imageQueue.size() > 1 && imageQueue.front()->header.stamp <= flowArray->header.stamp) {
-        imageQueue.pop_front();
-    }
-
-    // Publish the camera image overlaid by outlines of the detected tags and their payload values
-    if (draw_tag_detections_image) {
-        drawDetections(updatedArray, imageQueue.front());
-        tag_detections_image_publisher.publish(imageQueue.front()->toImageMsg());
-    }
-
-    clock_t end = clock();
-    cout << "Optical Flow Callback took " << (end - start) / (double) CLOCKS_PER_SEC << endl;
+    return (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
 }
 
 } // namespace apriltags2_ros
