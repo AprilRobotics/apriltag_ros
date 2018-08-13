@@ -43,7 +43,7 @@ endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm)
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS apriltags2 geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf opencv_apps apriltags2_msgs
+  CATKIN_DEPENDS apriltags2 geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf apriltags2_msgs
   DEPENDS Eigen OpenCV
 )
 
