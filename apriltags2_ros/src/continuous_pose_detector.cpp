@@ -66,8 +66,8 @@ void ContinuousPoseDetector::findTransformOpticalFlow(CvImageConstPtr& before, C
         }
     }
 
-    cv::TermCriteria termcrit(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 0.03);
-    cv::Size subPixWinSize(10,10), winSize(31,31);
+    cv::TermCriteria termcrit(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 15, 0.03);
+    cv::Size subPixWinSize(10,10), winSize(41,41);
     cv::cornerSubPix(grayBefore, points[0], subPixWinSize, cv::Size(-1,-1), termcrit);
 
     vector<uchar> status;
