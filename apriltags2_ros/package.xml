@@ -36,7 +36,6 @@
   <build_depend>eigen</build_depend>
   <build_depend>libopencv-dev</build_depend>
   <build_depend>cmake_modules</build_depend>
-  <build_depend>opencv_apps</build_depend>
   <build_depend>apriltags2_msgs</build_depend>
 
 
@@ -51,6 +50,5 @@
   <run_depend>cv_bridge</run_depend>
   <run_depend>eigen</run_depend>
   <run_depend>libopencv-dev</run_depend>
-  <run_depend>opencv_apps</run_depend>
   <run_depend>apriltags2_msgs</run_depend>
 </package>
