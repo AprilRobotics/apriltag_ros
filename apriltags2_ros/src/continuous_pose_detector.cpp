@@ -187,7 +187,7 @@ void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& im
 
     t6 = ros::Time::now().toNSec();
 
-    cout << "Queue sizes: " << imageList.size() << " " << detectionArrayList.size() << " " << detectionArrayCorrectedList.size() << " " << detectionArrayTransformList.size() << " | " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << " " << (t4 - t3) << " " << (t5 - t4) << " " << (t6 - t5) << endl;
+    cout << "Queue sizes: " << imageList.size() << " " << detectionArrayList.size() << " " << detectionArrayCorrectedList.size() << " " << detectionArrayTransformList.size() << " | " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << " " << (t4 - t3)/1000 << " " << (t5 - t4)/1000 << " " << (t6 - t5)/1000 << endl;
 }
 
 void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagDetectionArrayConstPtr detectionArray) {
