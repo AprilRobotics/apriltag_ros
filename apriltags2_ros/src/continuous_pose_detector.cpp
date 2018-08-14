@@ -53,9 +53,15 @@ void ContinuousPoseDetector::findTransformOpticalFlow(CvImageConstPtr& before, C
     if (detectionArray->detections.empty())
         return;
 
+    uint64_t t0, t01, t1, t2, t3;
+
+    t0 = ros::Time::now().toNSec();
+
     cv::Mat grayBefore, grayAfter;
     cv::cvtColor(before->image, grayBefore, cv::COLOR_BGR2GRAY );
     cv::cvtColor(after->image, grayAfter, cv::COLOR_BGR2GRAY );
+
+    t01 = ros::Time::now().toNSec();
 
     points[0].clear();
     points[1].clear();
@@ -70,9 +76,13 @@ void ContinuousPoseDetector::findTransformOpticalFlow(CvImageConstPtr& before, C
     cv::Size subPixWinSize(10,10), winSize(41,41);
     cv::cornerSubPix(grayBefore, points[0], subPixWinSize, cv::Size(-1,-1), termcrit);
 
+    t1 = ros::Time::now().toNSec();
+
     vector<uchar> status;
     vector<float> err;
     cv::calcOpticalFlowPyrLK(grayBefore, grayAfter, points[0], points[1], status, err, winSize, 3, termcrit);
+
+    t2 = ros::Time::now().toNSec();
 
     assert(points[0].size() == points[1].size());
 
@@ -90,6 +100,10 @@ void ContinuousPoseDetector::findTransformOpticalFlow(CvImageConstPtr& before, C
     }
     detectionTransformArray->from = before->header.stamp;
     detectionTransformArray->to = after->header.stamp;
+
+    t3 = ros::Time::now().toNSec();
+
+    cout << (t01 - t0)/1000 << " " << (t1 - t01)/1000 << " " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << endl;
 }
 
 void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info) {
@@ -187,7 +201,7 @@ void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& im
 
     t6 = ros::Time::now().toNSec();
 
-    cout << "Queue sizes: " << imageList.size() << " " << detectionArrayList.size() << " " << detectionArrayCorrectedList.size() << " " << detectionArrayTransformList.size() << " | " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << " " << (t4 - t3)/1000 << " " << (t5 - t4)/1000 << " " << (t6 - t5)/1000 << endl;
+//    cout << "Queue sizes: " << imageList.size() << " " << detectionArrayList.size() << " " << detectionArrayCorrectedList.size() << " " << detectionArrayTransformList.size() << " | " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << " " << (t4 - t3)/1000 << " " << (t5 - t4)/1000 << " " << (t6 - t5)/1000 << endl;
 }
 
 void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagDetectionArrayConstPtr detectionArray) {
