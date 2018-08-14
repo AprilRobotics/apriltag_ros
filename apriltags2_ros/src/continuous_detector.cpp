@@ -49,7 +49,7 @@ namespace apriltags2_ros {
 		// Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
 		// AprilTags 2 on the iamge
 		try {
-			this->cv_image = cv_bridge::toCvCopy(image_rect, sensor_msgs::image_encodings::BGR8);
+			this->cv_image = cv_bridge::toCvShare(image_rect, sensor_msgs::image_encodings::BGR8);
 			this->camera_info = camera_info;
 
             AprilTagDetectionArray detectionArray;
