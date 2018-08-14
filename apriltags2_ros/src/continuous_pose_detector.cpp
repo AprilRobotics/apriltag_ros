@@ -107,6 +107,9 @@ void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& im
 		return;
 	}
 
+	uint64_t t1, t2, t3, t4, t5, t6;
+	t1 = ros::Time::now().toNSec();
+
     // 1. Find the pose transformation using optical flow
     if (!detectionArrayCorrectedList.empty() && imageList.size() >= 2) {
         CvImageConstPtr latestImage = imageList.back();
@@ -136,6 +139,8 @@ void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& im
         }
     }
 
+    t2 = ros::Time::now().toNSec();
+
     // 2. Find the corrected pose using the past poses
     if (!detectionArrayList.empty()) {
         ros::Time image_time = cv_image->header.stamp;
@@ -152,16 +157,22 @@ void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& im
 
         detectionArrayCorrectedList.push_back(dArrayCurrent);
 
+        t3 = ros::Time::now().toNSec();
+
         // Draw the corrected pose on the image
         drawDetections(dArrayCurrent, cv_image_drawn);
         if (draw_tag_detections_image) {
             tag_detections_image_publisher.publish(cv_image_drawn->toImageMsg());
         }
 
+        t4 = ros::Time::now().toNSec();
+
         // Find the tag poses
         AprilTagDetectionPoseArray poseArray;
         findTagPose(poseArray, dArrayCurrent);
         tag_detections_publisher.publish(poseArray);
+
+        t5 = ros::Time::now().toNSec();
     }
 
     // 3. Delete old stuff from the lists
@@ -174,7 +185,9 @@ void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& im
     detectionArrayCorrectedList.remove_if([&too_old](AprilTagDetectionArray& det) {return det.header.stamp < too_old; });
     detectionArrayTransformList.remove_if([&too_old](AprilTagDetectionTransformArray& det) {return det.to < too_old; });
 
-    cout << "Queue sizes: " << imageList.size() << " " << detectionArrayList.size() << " " << detectionArrayCorrectedList.size() << " " << detectionArrayTransformList.size() << " " << endl;
+    t6 = ros::Time::now().toNSec();
+
+    cout << "Queue sizes: " << imageList.size() << " " << detectionArrayList.size() << " " << detectionArrayCorrectedList.size() << " " << detectionArrayTransformList.size() << " | " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << " " << (t4 - t3) << " " << (t5 - t4) << " " << (t6 - t5) << endl;
 }
 
 void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagDetectionArrayConstPtr detectionArray) {
