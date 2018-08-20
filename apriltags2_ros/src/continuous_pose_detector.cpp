@@ -53,34 +53,52 @@ void ContinuousPoseDetector::findTransformOpticalFlow(CvImageConstPtr& before, C
     if (detectionArray->detections.empty())
         return;
 
+    int scale = 1; // downscales
+    bool pyramid = false; // pyramid
+
+    cv::TermCriteria termcrit(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 20, 0.03);
+    cv::Size subPixWinSize(10,10), winSize(31,31), pyramidWinSize(51, 51);
+
     uint64_t t0, t01, t1, t2, t3;
 
     t0 = ros::Time::now().toNSec();
 
     cv::Mat grayBefore, grayAfter;
+    vector<cv::Mat> pyramidBefore, pyramidAfter;
     cv::cvtColor(before->image, grayBefore, cv::COLOR_BGR2GRAY );
     cv::cvtColor(after->image, grayAfter, cv::COLOR_BGR2GRAY );
+
+    if (scale != 1) {
+        cv::resize(grayBefore, grayBefore, cv::Size(grayBefore.rows / scale, grayBefore.cols / scale));
+        cv::resize(grayAfter, grayAfter, cv::Size(grayAfter.rows / scale, grayAfter.cols / scale));
+    }
+
+    if (pyramid) {
+        cv::buildOpticalFlowPyramid(grayBefore, pyramidBefore, pyramidWinSize, 3);
+        cv::buildOpticalFlowPyramid(grayAfter, pyramidAfter, pyramidWinSize, 3);
+    }
 
     t01 = ros::Time::now().toNSec();
 
     points[0].clear();
     points[1].clear();
     for (const auto &detection : detectionArray->detections) {
-        points[0].push_back(cv::Point2f(detection.c.x, detection.c.y));
+        points[0].push_back(cv::Point2f(detection.c.x / scale, detection.c.y / scale));
         for (unsigned i = 0; i < 4; ++i) {
-            points[0].push_back(cv::Point2f(detection.p[i].x, detection.p[i].y));
+            points[0].push_back(cv::Point2f(detection.p[i].x / scale, detection.p[i].y / scale));
         }
     }
 
-    cv::TermCriteria termcrit(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, 15, 0.03);
-    cv::Size subPixWinSize(10,10), winSize(41,41);
     cv::cornerSubPix(grayBefore, points[0], subPixWinSize, cv::Size(-1,-1), termcrit);
 
     t1 = ros::Time::now().toNSec();
 
     vector<uchar> status;
     vector<float> err;
-    cv::calcOpticalFlowPyrLK(grayBefore, grayAfter, points[0], points[1], status, err, winSize, 3, termcrit);
+    if (pyramid)
+        cv::calcOpticalFlowPyrLK(pyramidBefore, pyramidAfter, points[0], points[1], status, err, winSize, 3, termcrit);
+    else
+        cv::calcOpticalFlowPyrLK(grayBefore, grayAfter, points[0], points[1], status, err, winSize, 3, termcrit);
 
     t2 = ros::Time::now().toNSec();
 
@@ -90,11 +108,11 @@ void ContinuousPoseDetector::findTransformOpticalFlow(CvImageConstPtr& before, C
         AprilTagDetectionTransform tagDetectionTransform;
         tagDetectionTransform.id = detectionArray->detections[i].id;
 
-        tagDetectionTransform.c_delta.delX = points[1][i * 5].x - points[0][i * 5].x;
-        tagDetectionTransform.c_delta.delY = points[1][i * 5].y - points[0][i * 5].y;
+        tagDetectionTransform.c_delta.delX = (points[1][i * 5].x - points[0][i * 5].x) * scale;
+        tagDetectionTransform.c_delta.delY = (points[1][i * 5].y - points[0][i * 5].y) * scale;
         for (unsigned j = 0; j < 4; ++j) {
-            tagDetectionTransform.p_delta[j].delX = points[1][i * 5 + j + 1].x - points[0][i * 5 + j + 1].x;
-            tagDetectionTransform.p_delta[j].delY = points[1][i * 5 + j + 1].y - points[0][i * 5 + j + 1].y;
+            tagDetectionTransform.p_delta[j].delX = (points[1][i * 5 + j + 1].x - points[0][i * 5 + j + 1].x) * scale;
+            tagDetectionTransform.p_delta[j].delY = (points[1][i * 5 + j + 1].y - points[0][i * 5 + j + 1].y) * scale;
         }
         detectionTransformArray->tagTransforms.push_back(tagDetectionTransform);
     }
@@ -103,7 +121,7 @@ void ContinuousPoseDetector::findTransformOpticalFlow(CvImageConstPtr& before, C
 
     t3 = ros::Time::now().toNSec();
 
-    cout << (t01 - t0)/1000 << " " << (t1 - t01)/1000 << " " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << endl;
+//    cout << (t01 - t0)/1000 << " " << (t1 - t01)/1000 << " " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << endl;
 }
 
 void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info) {
@@ -201,7 +219,7 @@ void ContinuousPoseDetector::imageCallback( const sensor_msgs::ImageConstPtr& im
 
     t6 = ros::Time::now().toNSec();
 
-//    cout << "Queue sizes: " << imageList.size() << " " << detectionArrayList.size() << " " << detectionArrayCorrectedList.size() << " " << detectionArrayTransformList.size() << " | " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << " " << (t4 - t3)/1000 << " " << (t5 - t4)/1000 << " " << (t6 - t5)/1000 << endl;
+    cout << "Queue sizes: " << imageList.size() << " " << detectionArrayList.size() << " " << detectionArrayCorrectedList.size() << " " << detectionArrayTransformList.size() << " | " << (t2 - t1)/1000 << " " << (t3 - t2)/1000 << " " << (t4 - t3)/1000 << " " << (t5 - t4)/1000 << " " << (t6 - t5)/1000 << endl;
 }
 
 void ContinuousPoseDetector::location2DCallback(const apriltags2_msgs::AprilTagDetectionArrayConstPtr detectionArray) {
