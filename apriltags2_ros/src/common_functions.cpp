@@ -136,6 +136,8 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   td_->refine_decode = refine_decode_;
   td_->refine_pose = refine_pose_;
 
+  detections_ = NULL;
+
   // Get tf frame name to use for the camera
   if (!pnh.getParam("camera_frame", camera_tf_frame_))
   {
@@ -150,7 +152,7 @@ TagDetector::~TagDetector() {
   apriltag_detector_destroy(td_);
 
   // Free memory associated with the array of tag detections
-  zarray_destroy(detections_);
+  apriltag_detections_destroy(detections_);
 
   // free memory associated with tag family
   if (family_ == "tag36h11")
@@ -194,6 +196,11 @@ AprilTagDetectionArray TagDetector::detectTags (
   double cy = camera_info->K[5]; // optical center y-coordinate [px]
 
   // Run AprilTags 2 algorithm on the image
+  if (detections_)
+  {
+    apriltag_detections_destroy(detections_);
+    detections_ = NULL;
+  }
   detections_ = apriltag_detector_detect(td_, &apriltags2_image);
 
   // Restriction: any tag ID can appear at most once in the scene. Thus, get all
