@@ -29,17 +29,14 @@
  * Technology.
  */
 
-#include "apriltags2_ros/common_functions.h"
-#include "apriltags2_ros/single_image_detector.h"
+#include <apriltags2_ros/continuous_pose_detector.h>
 
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, "apriltags2_ros_single_image_server");
+int main(int argc, char **argv) {
+	ros::init(argc, argv, "apriltag2 continuous");
 
-  ros::NodeHandle nh;
-  ros::NodeHandle pnh("~");
+	ros::NodeHandle nh;
 
-  apriltags2_ros::SingleImageDetector continuous_tag_detector(nh, pnh);
-  
-  ros::spin();
+	apriltags2_ros::ContinuousPoseDetector continuousPoseDetector(nh);
+
+	ros::spin();
 }

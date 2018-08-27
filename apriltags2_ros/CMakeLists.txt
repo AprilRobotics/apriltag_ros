@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(apriltags2_ros)
 
+add_compile_options(-std=c++11)
+
 find_package(catkin REQUIRED COMPONENTS
   apriltags2
+  apriltags2_msgs
   geometry_msgs
   image_transport
   roscpp
@@ -12,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   tf
   cmake_modules
+  std_srvs
 )
 
 find_package(Eigen REQUIRED)
@@ -37,27 +41,9 @@ if(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mtune=cortex-a9 -mvectorize-with-neon-quad -ffast-math ")
 endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm)
 
-add_message_files(
-  FILES
-  AprilTagDetectionArray.msg
-  AprilTagDetection.msg
-)
-
-add_service_files(
-  FILES
-  AnalyzeSingleImage.srv
-)
-
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-)
-
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS apriltags2 geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf
+  CATKIN_DEPENDS apriltags2 apriltags2_msgs geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf
   DEPENDS Eigen OpenCV
 )
 
@@ -71,8 +57,7 @@ include_directories(include
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_library(common src/common_functions.cpp)
-add_dependencies(common ${PROJECT_NAME}_generate_messages_cpp)
+add_library(common src/tag_detector.cpp src/tag_settings.cpp)
 target_link_libraries(common
   ${catkin_LIBRARIES}
   ${Eigen_LIBRARIES}
@@ -80,34 +65,29 @@ target_link_libraries(common
 )
 
 add_library(continuous_detector src/continuous_detector.cpp)
+add_dependencies(continuous_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(continuous_detector
   common
   ${catkin_LIBRARIES}
 )
 
-add_library(single_image_detector src/single_image_detector.cpp)
-target_link_libraries(single_image_detector
+add_library(continuous_pose_detector src/continuous_pose_detector.cpp)
+add_dependencies(continuous_pose_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(continuous_pose_detector
   common
   ${catkin_LIBRARIES}
 )
 
-add_executable(${PROJECT_NAME}_continuous_node src/${PROJECT_NAME}_continuous_node.cpp)
-add_dependencies(${PROJECT_NAME}_continuous_node ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_continuous_node
+add_executable(continuous_pose_detector_node src/continuous_pose_detector_node.cpp)
+add_dependencies(continuous_pose_detector_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(continuous_pose_detector_node
+  continuous_pose_detector
+  ${catkin_LIBRARIES}
+)
+
+add_executable(continuous_detector_node src/continuous_detector_node.cpp)
+add_dependencies(continuous_detector_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(continuous_detector_node
   continuous_detector
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_single_image_server_node src/${PROJECT_NAME}_single_image_server_node.cpp)
-add_dependencies(${PROJECT_NAME}_single_image_server_node ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_single_image_server_node
-  single_image_detector
-  ${catkin_LIBRARIES}
-)
-
-add_executable(${PROJECT_NAME}_single_image_client_node src/${PROJECT_NAME}_single_image_client_node.cpp)
-add_dependencies(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_single_image_client_node
-  common
   ${catkin_LIBRARIES}
 )

@@ -11,4 +11,4 @@ string full_path_where_to_get_image
 string full_path_where_to_save_image
 sensor_msgs/CameraInfo camera_info
 ---
-apriltags2_ros/AprilTagDetectionArray tag_detections
+apriltags2_msgs/AprilTagDetectionPoseArray tag_detections

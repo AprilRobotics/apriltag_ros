@@ -25,6 +25,7 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>apriltags2</build_depend>
+  <build_depend>apriltags2_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
   <build_depend>image_transport</build_depend>
   <build_depend>roscpp</build_depend>
@@ -36,9 +37,11 @@
   <build_depend>eigen</build_depend>
   <build_depend>libopencv-dev</build_depend>
   <build_depend>cmake_modules</build_depend>
-  
+
+
   <run_depend>tf</run_depend>
   <run_depend>apriltags2</run_depend>
+  <run_depend>apriltags2_msgs</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>image_transport</run_depend>
   <run_depend>roscpp</run_depend>

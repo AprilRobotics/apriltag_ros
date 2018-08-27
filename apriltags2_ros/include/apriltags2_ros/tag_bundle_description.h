@@ -28,22 +28,32 @@
  * policies, either expressed or implied, of the California Institute of
  * Technology.
  *
- ** continuous_detector.h ******************************************************
+ ** common_functions.h *********************************************************
  *
- * Wrapper class of TagDetector class which calls TagDetector::detectTags on
- * each newly arrived image published by a camera.
+ * Wrapper classes for AprilTag standalone and bundle detection. Main function
+ * is TagDetector::detectTags which wraps the call to core AprilTags 2
+ * algorithm, apriltag_detector_detect().
  *
  * $Revision: 1.0 $
- * $Date: 2017/12/17 13:25:52 $
+ * $Date: 2017/12/17 13:23:14 $
  * $Author: dmalyuta $
  *
  * Originator:        Danylo Malyuta, JPL
  ******************************************************************************/
 
-#ifndef APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
-#define APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
+#ifndef APRILTAGS2_ROS_TAG_BUNDLE_DESCRIPTION_H
+#define APRILTAGS2_ROS_TAG_BUNDLE_DESCRIPTION_H
 
-#include "apriltag.h"
+#include <string>
+#include <sstream>
+#include <vector>
+
+#include <ros/ros.h>
+#include <ros/console.h>
+#include <XmlRpcException.h>
+#include <eigen3/Eigen/Dense>
+#include <eigen3/Eigen/Geometry>
+#include <tf/transform_broadcaster.h>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -52,30 +62,59 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
 
-#include "standalone_tag_description.h"
-#include "tag_bundle_member.h"
-#include "tag_detector.h"
+#include <apriltags2_ros/tag_bundle_member.h>
 
-#include <apriltags2_ros/tag_bundle_description.h>
-#include <apriltags2_msgs/AprilTagDetection.h>
-#include <apriltags2_msgs/AprilTagDetectionArray.h>
+using namespace std;
 
 namespace apriltags2_ros {
 
-class ContinuousDetector : public TagDetector {
-private:
-	bool draw_tag_detections_image;
-
-	image_transport::ImageTransport it;
-	image_transport::CameraSubscriber camera_image_subscriber;
-	ros::Publisher tag_detections_poses_publisher;
-
+class TagBundleDescription {
 public:
-	ContinuousDetector(ros::NodeHandle& nh);
+    // Bundle description
+    std::string name;
+    std::vector<TagBundleMember> tags;
+	std::map<int, int> id2idx; // (id2idx[<tag ID>]=<index in tags>) mapping
 
-	void imageCallback(const sensor_msgs::ImageConstPtr& image_rect, const sensor_msgs::CameraInfoConstPtr& camera_info);
+	TagBundleDescription(std::string name){
+	    this->name = name;
+	}
+
+	void addMemberTag(int id, double size, cv::Matx44d T_oi) {
+		TagBundleMember member;
+		member.id = id;
+		member.size = size;
+		member.T_oi = T_oi;
+		tags.push_back(member);
+		id2idx[id] = tags.size() - 1;
+	}
+
+	// Get IDs of bundle member tags
+	std::vector<int> bundleIds() {
+		std::vector<int> ids;
+		for (unsigned int i = 0; i < tags.size(); i++) {
+			ids.push_back(tags[i].id);
+		}
+		return ids;
+	}
+
+	// Get sizes of bundle member tags
+	std::vector<double> bundleSizes() {
+		std::vector<double> sizes;
+		for (unsigned int i = 0; i < tags.size(); i++) {
+			sizes.push_back(tags[i].size);
+		}
+		return sizes;
+	}
+
+	double memberSize(int tagID) {
+		return tags[id2idx[tagID]].size;
+	}
+
+	cv::Matx44d memberT_oi(int tagID) {
+		return tags[id2idx[tagID]].T_oi;
+	}
 };
 
 } // namespace apriltags2_ros
 
-#endif // APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
+#endif // APRILTAGS2_ROS_TAG_BUNDLE_DESCRIPTION_H

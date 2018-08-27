@@ -19,7 +19,14 @@
 #   ]
 standalone_tags:
   [
+    {id: 0, size: 0.08, name: tag1},
+    {id: 1, size: 0.08, name: tag2},
+    {id: 2, size: 0.08, name: tag3},
+    {id: 3, size: 0.08, name: tag4},
+    {id: 4, size: 0.04, name: tag5},
+    {id: 5, size: 0.04, name: tag6}
   ]
+
 # ## Tag bundle definitions
 # ### Remarks
 #
