@@ -59,6 +59,7 @@ catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS apriltags2 geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf
   DEPENDS Eigen OpenCV
+  LIBRARIES common
 )
 
 ###########
