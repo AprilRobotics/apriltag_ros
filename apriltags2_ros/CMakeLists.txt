@@ -111,3 +111,26 @@ target_link_libraries(${PROJECT_NAME}_single_image_client_node
   common
   ${catkin_LIBRARIES}
 )
+
+#############
+## Install ##
+#############
+
+## Mark executables and/or libraries for installation
+install(TARGETS
+  common
+  continuous_detector
+  single_image_detector
+  ${PROJECT_NAME}_continuous_node
+  ${PROJECT_NAME}_single_image_server_node
+  ${PROJECT_NAME}_single_image_client_node
+
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+## Mark cpp header files for installation
+install(DIRECTORY include/apriltags2_ros
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
