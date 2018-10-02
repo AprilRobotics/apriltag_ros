@@ -30,6 +30,7 @@
  */
 
 #include "apriltags2_ros/common_functions.h"
+#include "image_geometry/pinhole_camera_model.h"
 
 #include "common/homography.h"
 #include "tag36h11.h"
@@ -187,11 +188,14 @@ AprilTagDetectionArray TagDetector::detectTags (
                                   .buf = gray_image.data
   };
 
-  // Get camera intrinsic properties
-  double fx = camera_info->K[0]; // focal length in camera x-direction [px]
-  double fy = camera_info->K[4]; // focal length in camera y-direction [px]
-  double cx = camera_info->K[2]; // optical center x-coordinate [px]
-  double cy = camera_info->K[5]; // optical center y-coordinate [px]
+  image_geometry::PinholeCameraModel camera_model;
+  camera_model.fromCameraInfo(camera_info);
+
+  // Get camera intrinsic properties for rectified image.
+  double fx = camera_model.fx(); // focal length in camera x-direction [px]
+  double fy = camera_model.fy(); // focal length in camera y-direction [px]
+  double cx = camera_model.cx(); // optical center x-coordinate [px]
+  double cy = camera_model.cy(); // optical center y-coordinate [px]
 
   // Run AprilTags 2 algorithm on the image
   detections_ = apriltag_detector_detect(td_, &apriltags2_image);

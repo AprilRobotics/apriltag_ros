@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   apriltags2
   geometry_msgs
   image_transport
+  image_geometry
   roscpp
   sensor_msgs
   std_msgs
