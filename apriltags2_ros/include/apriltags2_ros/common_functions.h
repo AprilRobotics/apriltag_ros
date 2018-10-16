@@ -179,8 +179,10 @@ class TagDetector
   // Other members
   std::map<int, StandaloneTagDescription> standalone_tag_descriptions_;
   std::vector<TagBundleDescription > tag_bundle_descriptions_;
-  bool run_quietly_;
   bool publish_tf_;
+  bool run_quietly_;
+  bool use_default_tag_size_;
+  double default_tag_size_;
   tf::TransformBroadcaster tf_pub_;
   std::string camera_tf_frame_;
 
