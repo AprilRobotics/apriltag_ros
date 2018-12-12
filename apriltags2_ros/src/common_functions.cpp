@@ -30,14 +30,14 @@
  */
 
 #include "apriltags2_ros/common_functions.h"
-#include "image_geometry/pinhole_camera_model.h"
+#include <image_geometry/pinhole_camera_model.h>
 
-#include "common/homography.h"
-#include "tag36h11.h"
-#include "tag36h10.h"
-#include "tag25h9.h"
-#include "tag25h7.h"
-#include "tag16h5.h"
+#include <apriltags2/common/homography.h>
+#include <apriltags2/tag36h11.h>
+#include <apriltags2/tag36h10.h>
+#include <apriltags2/tag25h9.h>
+#include <apriltags2/tag25h7.h>
+#include <apriltags2/tag16h5.h>
 
 namespace apriltags2_ros
 {

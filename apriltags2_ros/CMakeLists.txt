@@ -116,3 +116,31 @@ target_link_libraries(${PROJECT_NAME}_single_image_client_node
   common
   ${catkin_LIBRARIES}
 )
+
+########################################################
+# Installs
+########################################################
+
+install(
+  DIRECTORY
+    include/${PROJECT_NAME}/
+  DESTINATION
+    ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+)
+
+install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(FILES nodelet_plugins.xml DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
+install(TARGETS
+    common
+    continuous_detector
+    single_image_detector
+    ${PROJECT_NAME}_continuous_node
+    ${PROJECT_NAME}_single_image_server_node
+    ${PROJECT_NAME}_single_image_client_node
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)

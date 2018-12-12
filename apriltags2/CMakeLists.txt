@@ -11,7 +11,7 @@ catkin_package(
   CATKIN_DEPENDS
 )
 
-include_directories(include include/common)
+include_directories(include/apriltags2 include/apriltags2/common)
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
@@ -61,7 +61,7 @@ install(TARGETS apriltags2
 )
 
 ## Mark cpp header files for installation
-install(DIRECTORY include/
+install(DIRECTORY include/apriltags2/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.h"
 )
