@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
 )
 
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 
 # Set the build type.  Options are:
@@ -63,7 +63,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS apriltags2 geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf nodelet pluginlib
-  DEPENDS Eigen OpenCV
+  DEPENDS OpenCV
 )
 
 ###########
@@ -72,7 +72,7 @@ catkin_package(
 
 include_directories(include
   ${catkin_INCLUDE_DIRS}
-  ${Eigen_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
@@ -80,7 +80,7 @@ add_library(common src/common_functions.cpp)
 add_dependencies(common ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(common
   ${catkin_LIBRARIES}
-  ${Eigen_LIBRARIES}
+  ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_LIBRARIES}
 )
 
