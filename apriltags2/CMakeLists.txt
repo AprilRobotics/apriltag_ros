@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(apriltags2)
 
-set(CMAKE_C_FLAGS "-std=gnu99 -fPIC -Wall -Wno-unused-parameter -Wno-unused-function -I. -O4 -fno-strict-overflow")
+set(CMAKE_C_FLAGS "-std=gnu99 -fPIC -Wall -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -I. -O4 -fno-strict-overflow")
 
 find_package(catkin REQUIRED)
 

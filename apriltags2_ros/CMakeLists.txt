@@ -17,7 +17,12 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
 )
 
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
+if(NOT Eigen_FOUND)
+  set(Eigen_INCLUDE_DIRS "${EIGEN3_INCLUDE_DIR}")
+endif()
+include_directories(${Eigen_INCLUDE_DIR})
+
 find_package(OpenCV REQUIRED)
 
 # Set the build type.  Options are:
@@ -31,7 +36,7 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 11)
 
 add_definitions (-Wall -O3)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -funsafe-loop-optimizations -fsee -funroll-loops -fno-math-errno -funsafe-math-optimizations -ffinite-math-only -fno-signed-zeros ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -funsafe-loop-optimizations -Wno-sign-compare -fsee -funroll-loops -fno-math-errno -funsafe-math-optimizations -ffinite-math-only -fno-signed-zeros ")
 
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64 OR x86_32)
   message("enabling msse2 for x86_64 or x86_32 architecture")
