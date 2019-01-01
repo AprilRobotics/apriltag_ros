@@ -54,6 +54,33 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
     publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false))
 {
+  pnh.param<bool>("use_cam_info_topic", use_cam_info_topic_, false);
+  pnh.param<bool>("get_yaw_from_tags", get_yaw_from_tags_, false);
+  pnh.param<double>("cam_fx", cam_fx_,0);
+  pnh.param<double>("cam_fy", cam_fy_,0);
+  pnh.param<double>("cam_px", cam_px_,0);
+  pnh.param<double>("cam_py", cam_py_,0);
+  pnh.param<double>("fcu_pos_x", fcu_pos_x_,0);
+  pnh.param<double>("fcu_pos_y", fcu_pos_y_,0);
+  pnh.param<double>("fcu_pos_z", fcu_pos_z_,0);
+  pnh.param<double>("fcu_pos_roll",fcu_pos_roll_,0);
+  pnh.param<double>("fcu_pos_pitch",fcu_pos_pitch_,0);
+  pnh.param<double>("fcu_pos_yaw",fcu_pos_yaw_,0);
+
+  ROS_INFO("using cam info topic: %d", use_cam_info_topic_);
+  ROS_INFO("get yaw from tags: %d", get_yaw_from_tags_);
+  ROS_INFO("cam_fx: %lf", cam_fx_);
+  ROS_INFO("cam_fy: %lf", cam_fy_);
+  ROS_INFO("cam_px: %lf", cam_px_);
+  ROS_INFO("cam_py: %lf", cam_py_);
+  ROS_INFO("fcu_pos_x: %lf", fcu_pos_x_);
+  ROS_INFO("fcu_pos_y: %lf", fcu_pos_y_);
+  ROS_INFO("fcu_pos_z: %lf", fcu_pos_z_);
+  ROS_INFO("fcu_pos_roll: %lf",fcu_pos_roll_);
+  ROS_INFO("fcu_pos_pitch: %lf",fcu_pos_pitch_);
+  ROS_INFO("fcu_pos_yaw: %lf",fcu_pos_yaw_);
+  cam_properties_set_ = false;
+
   // Parse standalone tag descriptions specified by user (stored on ROS
   // parameter server)
   XmlRpc::XmlRpcValue standalone_tag_descriptions;
@@ -197,14 +224,27 @@ AprilTagDetectionArray TagDetector::detectTags (
                                   .buf = gray_image.data
   };
 
-  image_geometry::PinholeCameraModel camera_model;
-  camera_model.fromCameraInfo(camera_info);
-
-  // Get camera intrinsic properties for rectified image.
-  double fx = camera_model.fx(); // focal length in camera x-direction [px]
-  double fy = camera_model.fy(); // focal length in camera y-direction [px]
-  double cx = camera_model.cx(); // optical center x-coordinate [px]
-  double cy = camera_model.cy(); // optical center y-coordinate [px]
+  if(!cam_properties_set_)
+  {
+    if(use_cam_info_topic_)
+    {
+      // Get camera intrinsic properties for rectified image.
+      image_geometry::PinholeCameraModel camera_model;
+      camera_model.fromCameraInfo(camera_info);
+      fx_ = camera_model.fx(); // focal length in camera x-direction [px]
+      fy_ = camera_model.fy(); // focal length in camera y-direction [px]
+      cx_ = camera_model.cx(); // optical center x-coordinate [px]
+      cy_ = camera_model.cy(); // optical center y-coordinate [px]
+    }
+    else
+    {
+      fx_ = cam_fx_;
+      fy_ = cam_fy_;
+      cx_ = cam_px_;
+      cy_ = cam_py_;
+    }
+    cam_properties_set_ = true;
+  }
 
   // Run AprilTags 2 algorithm on the image
   if (detections_)
@@ -230,6 +270,7 @@ AprilTagDetectionArray TagDetector::detectTags (
   tag_detection_array.header = image->header;
   std::map<std::string, std::vector<cv::Point3d > > bundleObjectPoints;
   std::map<std::string, std::vector<cv::Point2d > > bundleImagePoints;
+
   for (int i=0; i < zarray_size(detections_); i++)
   {
     // Get the i-th detected tag
@@ -306,12 +347,12 @@ AprilTagDetectionArray TagDetector::detectTags (
     addImagePoints(detection, standaloneTagImagePoints);
     Eigen::Matrix4d transform = getRelativeTransform(standaloneTagObjectPoints,
                                                      standaloneTagImagePoints,
-                                                     fx, fy, cx, cy);
+                                                     fx_, fy_, cx_, cy_);
     Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
     Eigen::Quaternion<double> rot_quaternion(rot);
-    
+
     geometry_msgs::PoseWithCovarianceStamped tag_pose =
-        makeTagPose(transform, rot_quaternion, image->header);
+        makeTagPose(transform, rot_quaternion, image->header, true);
 
     // Add the detection to the back of the tag detection array
     AprilTagDetection tag_detection;
@@ -342,7 +383,7 @@ AprilTagDetectionArray TagDetector::detectTags (
 
       Eigen::Matrix4d transform =
           getRelativeTransform(bundleObjectPoints[bundleName],
-                               bundleImagePoints[bundleName], fx, fy, cx, cy);
+                               bundleImagePoints[bundleName], fx_, fy_, cx_, cy_);
       Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
       Eigen::Quaternion<double> rot_quaternion(rot);
 
@@ -359,18 +400,46 @@ AprilTagDetectionArray TagDetector::detectTags (
     }
   }
 
+  auto sent_ = false;
   // If set, publish the transform /tf topic
-  if (publish_tf_) {
-    for (unsigned int i=0; i<tag_detection_array.detections.size(); i++) {
-      geometry_msgs::PoseStamped pose;
-      pose.pose = tag_detection_array.detections[i].pose.pose.pose;
-      pose.header = tag_detection_array.detections[i].pose.header;
-      tf::Stamped<tf::Transform> tag_transform;
-      tf::poseStampedMsgToTF(pose, tag_transform);
-      tf_pub_.sendTransform(tf::StampedTransform(tag_transform,
-                                                 tag_transform.stamp_,
-                                                 camera_tf_frame_,
-                                                 detection_names[i]));
+  if (publish_tf_)
+  {
+    for (unsigned int i=0; i<tag_detection_array.detections.size(); i++)
+    {
+        if(!sent_ &&
+            (
+               (
+                 fabs(tag_detection_array.detections[i].pose.pose.pose.position.z) > 2.0  &&
+                 detection_names[i].compare("big_tag") == 0 // Terrible....
+               )
+                 ||
+               (
+                 fabs(tag_detection_array.detections[i].pose.pose.pose.position.z) <= 2.0 &&
+                 detection_names[i].compare("big_tag") != 0 // Shameless.......
+               )
+            )
+          )
+        {
+          geometry_msgs::PoseStamped pose;
+          pose.pose = tag_detection_array.detections[i].pose.pose.pose;
+          pose.header = tag_detection_array.detections[i].pose.header;
+          tf::Stamped<tf::Transform> tag_transform;
+          tf::poseStampedMsgToTF(pose, tag_transform);
+          tf_pub_.sendTransform(tf::StampedTransform(tag_transform,
+                                                     tag_transform.stamp_,
+                                                     detection_names[i],
+                                                     camera_tf_frame_));
+          tf::Transform fcu_transform;
+          fcu_transform.setOrigin(tf::Vector3(fcu_pos_x_, fcu_pos_y_,  fcu_pos_z_));
+          tf::Quaternion fcu_q_;
+          fcu_q_.setRPY(fcu_pos_roll_,fcu_pos_pitch_, fcu_pos_yaw_);
+          fcu_transform.setRotation(fcu_q_);
+          tf_pub_.sendTransform(tf::StampedTransform(fcu_transform,
+                                                     tag_transform.stamp_,
+                                                     camera_tf_frame_,
+                                                     "fcu_vision"));
+          sent_ = true;
+        }
     }
   }
 
@@ -491,19 +560,39 @@ Eigen::Matrix4d TagDetector::getRelativeTransform(
 geometry_msgs::PoseWithCovarianceStamped TagDetector::makeTagPose(
     const Eigen::Matrix4d& transform,
     const Eigen::Quaternion<double> rot_quaternion,
-    const std_msgs::Header& header)
+    const std_msgs::Header& header,
+        bool standalone_tag)
 {
-  geometry_msgs::PoseWithCovarianceStamped pose;
-  pose.header = header;
+  tf::Matrix3x3 rot_matrix;
+  if(get_yaw_from_tags_ && standalone_tag) // hardcoded for now... TODO: Fix this
+  {
+      tf::Quaternion quat(rot_quaternion.x(),rot_quaternion.y(),rot_quaternion.z(),rot_quaternion.w());
+      tf::Matrix3x3 matrix(quat);
+      double roll, pitch, yaw;
+      matrix.getEulerYPR(yaw, pitch, roll);
+      //rt_m.setRPY(roll, pitch, yaw);
+      rot_matrix.setRPY(fcu_pos_roll_, fcu_pos_pitch_, yaw);
+  }
+  else
+  {
+      rot_matrix.setRPY(fcu_pos_roll_, fcu_pos_pitch_, fcu_pos_yaw_);
+  }
+  tf::Vector3 vec_tf(transform(0, 3), transform(1, 3), transform(2, 3));
+  tf::Vector3 vec_tf_inv = rot_matrix*-vec_tf;
+  tf::Quaternion rot_quaternion_tf;
+  rot_matrix.getRotation(rot_quaternion_tf);
+
+  geometry_msgs::PoseWithCovarianceStamped tag_pose;
+  tag_pose.header = header;
   //===== Position and orientation
-  pose.pose.pose.position.x    = transform(0, 3);
-  pose.pose.pose.position.y    = transform(1, 3);
-  pose.pose.pose.position.z    = transform(2, 3);
-  pose.pose.pose.orientation.x = rot_quaternion.x();
-  pose.pose.pose.orientation.y = rot_quaternion.y();
-  pose.pose.pose.orientation.z = rot_quaternion.z();
-  pose.pose.pose.orientation.w = rot_quaternion.w();
-  return pose;
+  tag_pose.pose.pose.position.x    = vec_tf_inv.x();//transform(0, 3);
+  tag_pose.pose.pose.position.y    = vec_tf_inv.y();//transform(1, 3);
+  tag_pose.pose.pose.position.z    = vec_tf_inv.z();//transform(2, 3);
+  tag_pose.pose.pose.orientation.x = rot_quaternion_tf.x();//rot_quaternion.x();
+  tag_pose.pose.pose.orientation.y = rot_quaternion_tf.y();//rot_quaternion.y();
+  tag_pose.pose.pose.orientation.z = rot_quaternion_tf.z();//rot_quaternion.z();
+  tag_pose.pose.pose.orientation.w = rot_quaternion_tf.w();//rot_quaternion.w();
+  return tag_pose;
 }
 
 void TagDetector::drawDetections (cv_bridge::CvImagePtr image)

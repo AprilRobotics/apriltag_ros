@@ -154,6 +154,25 @@ class TagBundleDescription
 class TagDetector
 {
  private:
+
+  double fx_;
+  double fy_;
+  double cx_;
+  double cy_;
+  double cam_fx_;
+  double cam_fy_;
+  double cam_px_;
+  double cam_py_;
+  double fcu_pos_x_;
+  double fcu_pos_y_;
+  double fcu_pos_z_;
+  double fcu_pos_roll_;
+  double fcu_pos_pitch_;
+  double fcu_pos_yaw_;
+  bool use_cam_info_topic_;
+  bool get_yaw_from_tags_;
+  bool cam_properties_set_;
+
   // Detections sorting
   static int idComparison(const void* first, const void* second);
 
@@ -205,10 +224,9 @@ class TagDetector
       int id, StandaloneTagDescription*& descriptionContainer,
       bool printWarning = true);
 
-  geometry_msgs::PoseWithCovarianceStamped makeTagPose(
-      const Eigen::Matrix4d& transform,
+  geometry_msgs::PoseWithCovarianceStamped makeTagPose(const Eigen::Matrix4d& transform,
       const Eigen::Quaternion<double> rot_quaternion,
-      const std_msgs::Header& header);
+      const std_msgs::Header& header, bool standalone_tag = false);
 
   // Detect tags in an image
   AprilTagDetectionArray detectTags(
