@@ -49,6 +49,9 @@
 
 #include <nodelet/nodelet.h>
 
+#include <robostate_comm_msgs/StateMsg.h>
+#include <robostate_comm_msgs/States.h>
+
 namespace apriltags2_ros
 {
 
