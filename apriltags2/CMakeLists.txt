@@ -11,6 +11,13 @@ catkin_package(
   CATKIN_DEPENDS
 )
 
+if(JETSON_CROSS_COMPILE)
+  set(C11_COMP_FLAGS "-W -pipe -Ofast -mcpu=cortex-a57 -std=c++11")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C11_COMP_FLAGS}")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pipe -Ofast -std=c++11")
+endif()
+
 include_directories(include include/common)
 include_directories(
   ${catkin_INCLUDE_DIRS}
