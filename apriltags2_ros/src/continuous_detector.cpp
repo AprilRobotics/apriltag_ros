@@ -53,21 +53,37 @@ void ContinuousDetector::onInit ()
   it_ = std::shared_ptr<image_transport::ImageTransport>(
       new image_transport::ImageTransport(nh));
 
+  state_subs_ = nh.subscribe("/State", 10, &ContinuousDetector::stateCb, this);
+
   camera_image_subscriber_ =
       it_->subscribeCamera("image_rect", 1,
                           &ContinuousDetector::imageCallback, this);
   tag_detections_publisher_ =
       nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
+
   if (draw_tag_detections_image_)
   {
     tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
   }
 }
 
+void ContinuousDetector::stateCb(const robostate_comm_msgs::StateMsgConstPtr& state_msg_)
+{
+   this->drone_state_ = static_cast<RoboState::States>(state_msg_->state);
+}
+
 void ContinuousDetector::imageCallback (
     const sensor_msgs::ImageConstPtr& image_rect,
     const sensor_msgs::CameraInfoConstPtr& camera_info)
 {
+
+
+  if(this->drone_state_ != RoboState::States::DOCKING)
+  {
+      return;
+  }
+
+
   // Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
   // AprilTags 2 on the iamge
   try

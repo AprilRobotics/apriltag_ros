@@ -61,6 +61,8 @@ class ContinuousDetector: public nodelet::Nodelet
   void imageCallback(const sensor_msgs::ImageConstPtr& image_rect,
                      const sensor_msgs::CameraInfoConstPtr& camera_info);
 
+  void stateCb(const robostate_comm_msgs::StateMsgConstPtr& state_msg_);
+
  private:
   std::shared_ptr<TagDetector> tag_detector_;
   bool draw_tag_detections_image_;
@@ -70,6 +72,8 @@ class ContinuousDetector: public nodelet::Nodelet
   image_transport::CameraSubscriber camera_image_subscriber_;
   image_transport::Publisher tag_detections_image_publisher_;
   ros::Publisher tag_detections_publisher_;
+  ros::Subscriber state_subs_;
+  RoboState::States drone_state_;
 };
 
 } // namespace apriltags2_ros
