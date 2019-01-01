@@ -39,6 +39,8 @@
   <build_depend>eigen</build_depend>
   <build_depend>libopencv-dev</build_depend>
   <build_depend>cmake_modules</build_depend>
+  <build_depend>robostate_comm_msgs</build_depend>
+  <build_depend>tf2_ros</build_depend>
   
   <run_depend>tf</run_depend>
   <run_depend>apriltags2</run_depend>
@@ -54,6 +56,8 @@
   <run_depend>pluginlib</run_depend>
   <run_depend>eigen</run_depend>
   <run_depend>libopencv-dev</run_depend>
+  <run_depend>robostate_comm_msgs</run_depend>
+  <run_depend>tf2_ros</run_depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />
