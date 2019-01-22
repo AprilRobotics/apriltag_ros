@@ -31,6 +31,10 @@
 
 #include "apriltags2_ros/common_functions.h"
 #include "image_geometry/pinhole_camera_model.h"
+#include <opencv2/core/core.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Vector3.h>
 
 #include "common/homography.h"
 #include "tag36h11.h"
@@ -87,6 +91,7 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   {
     try
     {
+      std::lock_guard<std::mutex> lock{tag_bundle_descriptions_mutex_};
       tag_bundle_descriptions_ = parseTagBundles(tag_bundle_descriptions);
     }
     catch(XmlRpc::XmlRpcException e)
@@ -243,11 +248,10 @@ AprilTagDetectionArray TagDetector::detectTags (
     // the process of collecting all the object-image corresponding points
     int tagID = detection->id;
     bool is_part_of_bundle = false;
-    for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++)
+    std::lock_guard<std::mutex> lock{tag_bundle_descriptions_mutex_};
+    // Iterate over the registered bundles.
+    for (auto & bundle : tag_bundle_descriptions_)
     {
-      // Iterate over the registered bundles
-      TagBundleDescription bundle = tag_bundle_descriptions_[j];
-
       if (bundle.id2idx_.find(tagID) != bundle.id2idx_.end())
       {
         // This detected tag belongs to the j-th tag bundle (its ID was found in
@@ -274,7 +278,7 @@ AprilTagDetectionArray TagDetector::detectTags (
     if (!findStandaloneTagDescription(tagID, standaloneDescription,
                                       !is_part_of_bundle))
     {
-      continue; 
+      continue;
     }
 
     //=================================================================
@@ -309,7 +313,7 @@ AprilTagDetectionArray TagDetector::detectTags (
                                                      fx, fy, cx, cy);
     Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
     Eigen::Quaternion<double> rot_quaternion(rot);
-    
+
     geometry_msgs::PoseWithCovarianceStamped tag_pose =
         makeTagPose(transform, rot_quaternion, image->header);
 
@@ -326,36 +330,35 @@ AprilTagDetectionArray TagDetector::detectTags (
   // Estimate bundle origin pose for each bundle in which at least one
   // member tag was detected
 
-  for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++)
   {
-    // Get bundle name
-    std::string bundleName = tag_bundle_descriptions_[j].name();
-
-    std::map<std::string,
-             std::vector<cv::Point3d> >::iterator it =
-        bundleObjectPoints.find(bundleName);
-    if (it != bundleObjectPoints.end())
+    std::lock_guard<std::mutex> lock{tag_bundle_descriptions_mutex_};
+    for (auto & bundle : tag_bundle_descriptions_)
     {
-      // Some member tags of this bundle were detected, get the bundle's
-      // position!
-      TagBundleDescription& bundle = tag_bundle_descriptions_[j];
+      // Get bundle name
+      std::string bundleName = bundle.name();
 
-      Eigen::Matrix4d transform =
+      std::map<std::string,
+        std::vector<cv::Point3d> >::iterator it =
+          bundleObjectPoints.find(bundleName);
+      if (it != bundleObjectPoints.end())
+      {
+        Eigen::Matrix4d transform =
           getRelativeTransform(bundleObjectPoints[bundleName],
-                               bundleImagePoints[bundleName], fx, fy, cx, cy);
-      Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
-      Eigen::Quaternion<double> rot_quaternion(rot);
+              bundleImagePoints[bundleName], fx, fy, cx, cy);
+        Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
+        Eigen::Quaternion<double> rot_quaternion(rot);
 
-      geometry_msgs::PoseWithCovarianceStamped bundle_pose =
+        geometry_msgs::PoseWithCovarianceStamped bundle_pose =
           makeTagPose(transform, rot_quaternion, image->header);
 
-      // Add the detection to the back of the tag detection array
-      AprilTagDetection tag_detection;
-      tag_detection.pose = bundle_pose;
-      tag_detection.id = bundle.bundleIds();
-      tag_detection.size = bundle.bundleSizes();
-      tag_detection_array.detections.push_back(tag_detection);
-      detection_names.push_back(bundle.name());
+        // Add the detection to the back of the tag detection array
+        AprilTagDetection tag_detection;
+        tag_detection.pose = bundle_pose;
+        tag_detection.id = bundle.bundleIds();
+        tag_detection.size = bundle.bundleSizes();
+        tag_detection_array.detections.push_back(tag_detection);
+        detection_names.push_back(bundle.name());
+      }
     }
   }
 
@@ -517,9 +520,9 @@ void TagDetector::drawDetections (cv_bridge::CvImagePtr image)
     // Check if is part of a tag bundle
     int tagID = det->id;
     bool is_part_of_bundle = false;
-    for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++)
+    std::lock_guard<std::mutex> lock{tag_bundle_descriptions_mutex_};
+    for (auto & bundle : tag_bundle_descriptions_)
     {
-      TagBundleDescription bundle = tag_bundle_descriptions_[j];
       if (bundle.id2idx_.find(tagID) != bundle.id2idx_.end())
       {
         is_part_of_bundle = true;
@@ -625,13 +628,13 @@ std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags (
 }
 
 // parse tag bundle descriptions
-std::vector<TagBundleDescription > TagDetector::parseTagBundles (
+std::list<TagBundleDescription > TagDetector::parseTagBundles (
     XmlRpc::XmlRpcValue& tag_bundles)
 {
-  std::vector<TagBundleDescription > descriptions;
+  std::list<TagBundleDescription > descriptions;
   ROS_ASSERT(tag_bundles.getType() == XmlRpc::XmlRpcValue::TypeArray);
 
-  // Loop through all tag bundle descritions
+  // Loop through all tag bundle descriptions
   for (int32_t i=0; i<tag_bundles.size(); i++)
   {
     ROS_ASSERT(tag_bundles[i].getType() == XmlRpc::XmlRpcValue::TypeStruct);
@@ -653,14 +656,14 @@ std::vector<TagBundleDescription > TagDetector::parseTagBundles (
     }
     TagBundleDescription bundle_i(bundleName);
     ROS_INFO("Loading tag bundle '%s'",bundle_i.name().c_str());
-    
+
     ROS_ASSERT(bundle_description["layout"].getType() ==
                XmlRpc::XmlRpcValue::TypeArray);
     XmlRpc::XmlRpcValue& member_tags = bundle_description["layout"];
 
     // Loop through each member tag of the bundle
     for (int32_t j=0; j<member_tags.size(); j++)
-    {      
+    {
       ROS_ASSERT(member_tags[j].getType() == XmlRpc::XmlRpcValue::TypeStruct);
       XmlRpc::XmlRpcValue& tag = member_tags[j];
 
@@ -675,9 +678,9 @@ std::vector<TagBundleDescription > TagDetector::parseTagBundles (
       StandaloneTagDescription* standaloneDescription;
       if (findStandaloneTagDescription(id, standaloneDescription, false))
       {
-        ROS_ASSERT(size == standaloneDescription->size()); 
+        ROS_ASSERT(size == standaloneDescription->size());
       }
-      
+
       // Get this tag's pose with respect to the bundle origin
       double x  = xmlRpcGetDoubleWithDefault(tag, "x", 0.);
       double y  = xmlRpcGetDoubleWithDefault(tag, "y", 0.);
@@ -706,6 +709,145 @@ std::vector<TagBundleDescription > TagDetector::parseTagBundles (
     descriptions.push_back(bundle_i);
   }
   return descriptions;
+}
+
+/** Add or update one or more bundles
+ *
+ * @param[in] bundles_description Tag bundle description in yaml format for one
+ *                                one more bundles.
+ *                                Must be a sequence, even with one bundle.
+ *                                Example:
+ *                                "[{name: b1, layout: [{id: 42, size: 0.05,
+ *                                x: 1, y: 2, z: 3, qw: 1, qx: 0, qy: 0, qz: 0},
+ *                                {id: 43, size: 0.05, x: 1,  y: 2, z: 3,
+ *                                qw: 1, qx: 0, qy: 0, qz: 0}]},
+ *                                {layout: [{id: 44, size: 0.05, x: 1, y: 2,
+ *                                z: 3, qw: 1, qx: 0, qy: 0, qz: 0}, {id: 45,
+ *                                size: 0.05, x: 1,  y: 2, z: 3, qw: 1,
+ *                                qx: 0, qy: 0, qz: 0}]}]".
+ *                                Due to a design choice of the underlying
+ *                                yaml-cpp library, there must be a space after
+ *                                field names, e.g. "id: 42" is correct,
+ *                                whereas "id:42" is not.
+ */
+void TagDetector::updateBundle(const std::string & bundles_description)
+{
+  YAML::Node bundles_node = YAML::Load(bundles_description);
+  if (!bundles_node.IsSequence())
+  {
+    ROS_WARN("Error parsing bundles description, description is not a sequence");
+    return;
+  }
+
+  for (auto bundle_node : bundles_node)
+  {
+    if (!bundle_node.IsMap())
+    {
+      ROS_WARN("Error parsing bundle description, bundle is not a map, ignoring this bundle");
+      continue;
+    }
+
+    TagBundleDescription bundle_description;
+    if (!parseYamlBundle(bundle_node, bundle_description))
+    {
+      continue;
+    }
+
+    /* We acquire the lock now, to avoid insertion of a bundle between getting
+     * the next available bundle name and the insertion of the current bundle. */
+    std::lock_guard<std::mutex> lock{tag_bundle_descriptions_mutex_};
+    /* Remove a possibly already existing bundle. */
+    const std::string bundle_name = bundle_description.name();
+    const auto & bundle_with_same_name = std::find_if(tag_bundle_descriptions_.begin(),
+        tag_bundle_descriptions_.end(),
+        [bundle_name] (const TagBundleDescription bundle) {return bundle.name() == bundle_name;});
+    if (bundle_with_same_name != tag_bundle_descriptions_.end())
+    {
+      /* We already have a bundle with the same name, remove it. */
+      ROS_WARN_STREAM("A bundle with the name \"" << bundle_name << "\" already existed and will be updated");
+      tag_bundle_descriptions_.erase(bundle_with_same_name);
+    }
+    if (bundle_name.empty())
+    {
+      bundle_description.setName(nextAvailableBundleName());
+      ROS_WARN_STREAM("Bundle has no name, setting to \"" << bundle_description.name() << "\"");
+    }
+
+    tag_bundle_descriptions_.push_back(bundle_description);
+  }
+  /* Print outs the current list of bundles. */
+  if (tag_bundle_descriptions_.empty())
+  {
+    ROS_DEBUG("No bundle in database");
+  }
+  else
+  {
+    ROS_DEBUG("current bundle list:");
+    for (auto & bundle : tag_bundle_descriptions_)
+    {
+      ROS_DEBUG_STREAM("  " << bundle.name());
+    }
+  }
+}
+
+/** Remove an existing bundle.
+ */
+void TagDetector::removeBundle(const std::string & bundle_name)
+{
+  std::lock_guard<std::mutex> lock{tag_bundle_descriptions_mutex_};
+  const auto & bundle_with_this_name = std::find_if(tag_bundle_descriptions_.begin(),
+      tag_bundle_descriptions_.end(),
+      [bundle_name] (const TagBundleDescription bundle) {return bundle.name() == bundle_name;});
+  if (bundle_with_this_name != tag_bundle_descriptions_.end())
+  {
+    /* We have a bundle with this name, remove it. */
+    tag_bundle_descriptions_.erase(bundle_with_this_name);
+  }
+  else
+  {
+    ROS_DEBUG_STREAM("No bundle with the name \"" << bundle_name << "\" existed, doing nothing");
+  }
+  /* Print outs the current list of bundles. */
+  if (tag_bundle_descriptions_.empty())
+  {
+    ROS_DEBUG("No bundle in database");
+  }
+  else
+  {
+    ROS_DEBUG("current bundle list:");
+    for (auto & bundle : tag_bundle_descriptions_)
+    {
+      ROS_DEBUG_STREAM("  " << bundle.name());
+    }
+  }
+}
+
+/** Returns the first available name with format "bundle_[0-9]+"
+ *
+ * This function does NOT lock tag_bundle_descriptions_mutex_.
+ */
+std::string TagDetector::nextAvailableBundleName()
+{
+  size_t i = 1;
+  while (true)
+  {
+    std::stringstream bundle_name_stream;
+    bundle_name_stream << "bundle_" << i;
+    bool free_slot = true;
+    for (auto & bundle : tag_bundle_descriptions_)
+    {
+      if (bundle_name_stream.str() == bundle.name())
+      {
+        free_slot = false;
+        break;
+      }
+    }
+    if (free_slot)
+    {
+      return bundle_name_stream.str();
+    }
+    i++;
+  }
 }
 
 double TagDetector::xmlRpcGetDouble (XmlRpc::XmlRpcValue& xmlValue,
@@ -763,6 +905,140 @@ bool TagDetector::findStandaloneTagDescription (
     return false;
   }
   descriptionContainer = &(description_itr->second);
+  return true;
+}
+
+bool TagDetector::parseYamlBundle(const YAML::Node & bundle_node, TagBundleDescription & bundle_description)
+{
+  std::string bundle_name;
+  if (bundle_node["name"])
+  {
+    try
+    {
+      bundle_name = bundle_node["name"].as<std::string>();
+    }
+    catch (YAML::ParserException & e)
+    {
+      ROS_WARN_STREAM(e.msg);
+      return false;
+    }
+  }
+  bundle_description.setName(bundle_name);
+
+  if (!bundle_node["layout"])
+  {
+    ROS_WARN("layout must be provided, ignoring this bundle");
+    return false;
+  }
+
+  YAML::Node layout_node = bundle_node["layout"];
+
+  if (!layout_node.IsSequence())
+  {
+    ROS_WARN("layout must be a sequence, ignoring this bundle");
+    return false;
+  }
+
+  /* Loop through each member tag of the bundle. */
+  for (auto tag_node : layout_node)
+  {
+    if (!tag_node.IsMap())
+    {
+      ROS_WARN("Member tag must be a map, ignoring this bundle");
+      return false;
+    }
+
+    if (!tag_node["id"]
+        or !tag_node["size"]
+        or !tag_node["x"]
+        or !tag_node["y"]
+        or !tag_node["z"]
+        or !tag_node["qx"]
+        or !tag_node["qy"]
+        or !tag_node["qz"]
+        or !tag_node["qw"])
+    {
+      ROS_WARN("Member tag must have fields id, size, x, y, z, qx, qy, qz, qw, ignoring this bundle");
+      return false;
+    }
+
+    if (!tag_node["id"].IsScalar()
+        or !tag_node["size"].IsScalar()
+        or !tag_node["x"].IsScalar()
+        or !tag_node["y"].IsScalar()
+        or !tag_node["z"].IsScalar()
+        or !tag_node["qx"].IsScalar()
+        or !tag_node["qy"].IsScalar()
+        or !tag_node["qz"].IsScalar()
+        or !tag_node["qw"].IsScalar())
+    {
+      ROS_WARN("Member tag fields must be scalars, ignoring this bundle");
+      return false;
+    }
+
+    int id;
+    try
+    {
+      id = tag_node["id"].as<int>();
+    }
+    catch (YAML::Exception & e)
+    {
+      ROS_WARN("Member tag field id must be a positive integer, ignoring this bundle");
+      return false;
+    }
+    if (id < 0)
+    {
+      ROS_WARN("Member tag field id must be positive, ignoring this bundle");
+      return false;
+    }
+
+    double size;
+    double x;
+    double y;
+    double z;
+    double qx;
+    double qy;
+    double qz;
+    double qw;
+    try
+    {
+      size = tag_node["size"].as<double>();
+      x = tag_node["x"].as<double>();
+      y = tag_node["y"].as<double>();
+      z = tag_node["z"].as<double>();
+      qx = tag_node["qx"].as<double>();
+      qy = tag_node["qy"].as<double>();
+      qz = tag_node["qz"].as<double>();
+      qw = tag_node["qw"].as<double>();
+    }
+    catch (YAML::Exception & e)
+    {
+      ROS_WARN("Member tag fields size, x, y, z, qx, qy, qz, qw must be floats, ignoring this bundle");
+      return false;
+    }
+
+    /* Make sure that if the tag is also specified also as standalone, then
+     * the sizes match. */
+    StandaloneTagDescription* standaloneDescription;
+    if (findStandaloneTagDescription(id, standaloneDescription, false) and
+        (size != standaloneDescription->size()))
+    {
+      ROS_WARN_STREAM("A tag with id \"" << id << "\" with different size already exists, ignoring this bundle");
+      return false;
+    }
+
+    Eigen::Quaterniond q_tag(qw, qx, qy, qz);
+    q_tag.normalize();
+    Eigen::Matrix3d r_oi = q_tag.toRotationMatrix();
+
+    /* Build the rigid transform from this tag to the bundle origin. */
+    cv::Matx44d t_oi(r_oi(0,0), r_oi(0,1), r_oi(0,2), x,
+        r_oi(1,0), r_oi(1,1), r_oi(1,2), y,
+        r_oi(2,0), r_oi(2,1), r_oi(2,2), z,
+        0,         0,         0,         1);
+
+    bundle_description.addMemberTag(id, size, t_oi);
+  }
   return true;
 }
 

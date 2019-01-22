@@ -62,6 +62,9 @@ void ContinuousDetector::onInit ()
   {
     tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
   }
+
+  update_bundle_server_ = pnh.advertiseService("update_bundle", &ContinuousDetector::updateBundle, this);
+  remove_bundle_server_ = pnh.advertiseService("remove_bundle", &ContinuousDetector::removeBundle, this);
 }
 
 void ContinuousDetector::imageCallback (
@@ -93,5 +96,18 @@ void ContinuousDetector::imageCallback (
     tag_detections_image_publisher_.publish(cv_image_->toImageMsg());
   }
 }
+
+bool ContinuousDetector::updateBundle(UpdateBundle::Request & req, UpdateBundle::Response & /* res */)
+{
+  tag_detector_->updateBundle(req.tag_bundles.data);
+  return true;
+}
+
+bool ContinuousDetector::removeBundle(RemoveBundle::Request & req, RemoveBundle::Response & /* res */)
+{
+  tag_detector_->removeBundle(req.bundle_name.data);
+  return true;
+}
+
 
 } // namespace apriltags2_ros

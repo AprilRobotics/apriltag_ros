@@ -44,10 +44,12 @@
 #ifndef APRILTAGS2_ROS_COMMON_FUNCTIONS_H
 #define APRILTAGS2_ROS_COMMON_FUNCTIONS_H
 
-#include <string>
-#include <sstream>
-#include <vector>
+#include <list>
 #include <map>
+#include <mutex>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -61,6 +63,7 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 #include <tf/transform_broadcaster.h>
+#include <yaml-cpp/yaml.h>
 
 #include "apriltags2_ros/AprilTagDetection.h"
 #include "apriltags2_ros/AprilTagDetectionArray.h"
@@ -91,7 +94,7 @@ class StandaloneTagDescription
  public:
   StandaloneTagDescription() {};
   StandaloneTagDescription(int id, double size,
-                           std::string &frame_name) :
+                           const std::string &frame_name) :
       id_(id),
       size_(size),
       frame_name_(frame_name) {}
@@ -112,6 +115,7 @@ class TagBundleDescription
  public:
   std::map<int, int > id2idx_; // (id2idx_[<tag ID>]=<index in tags_>) mapping
 
+  TagBundleDescription() {};
   TagBundleDescription(std::string name) :
       name_(name) {}
 
@@ -125,6 +129,8 @@ class TagBundleDescription
   }
 
   std::string name () const { return name_; }
+  void setName(const std::string & name) {name_ = name;};
+
   // Get IDs of bundle member tags
   std::vector<int> bundleIds () {
     std::vector<int> ids;
@@ -160,6 +166,9 @@ class TagDetector
   // Remove detections of tags with the same ID
   void removeDuplicates();
 
+  std::string nextAvailableBundleName();
+
+  bool parseYamlBundle(const YAML::Node & bundle_node, TagBundleDescription & bundle_description);
   // AprilTags 2 code's attributes
   std::string family_;
   int border_;
@@ -178,7 +187,8 @@ class TagDetector
 
   // Other members
   std::map<int, StandaloneTagDescription> standalone_tag_descriptions_;
-  std::vector<TagBundleDescription > tag_bundle_descriptions_;
+  std::list<TagBundleDescription > tag_bundle_descriptions_;
+  std::mutex tag_bundle_descriptions_mutex_;
   bool remove_duplicates_;
   bool run_quietly_;
   bool publish_tf_;
@@ -193,8 +203,13 @@ class TagDetector
   // Store standalone and bundle tag descriptions
   std::map<int, StandaloneTagDescription> parseStandaloneTags(
       XmlRpc::XmlRpcValue& standalone_tag_descriptions);
-  std::vector<TagBundleDescription > parseTagBundles(
+  std::list<TagBundleDescription > parseTagBundles(
       XmlRpc::XmlRpcValue& tag_bundles);
+  /** Add or update one or more bundles
+   */
+  void updateBundle(const std::string & bundles_description);
+  void removeBundle(const std::string & bundle_name);
+
   double xmlRpcGetDouble(
       XmlRpc::XmlRpcValue& xmlValue, std::string field) const;
   double xmlRpcGetDoubleWithDefault(

@@ -1,0 +1,3 @@
+# Name of the bundle to remove
+std_msgs/String bundle_name
+---
