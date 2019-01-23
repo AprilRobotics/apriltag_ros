@@ -2,5 +2,5 @@
 # Example:
 # "[{name: b1, layout: [{id: 42, size: 0.05, x: 1, y: 2, z: 3, qw: 1, qx: 0, qy: 0, qz: 0}, {id: 43, size: 0.05, x: 1,  y: 2, z: 3, qw: 1, qx: 0, qy: 0, qz: 0}]},{layout: [{id: 44, size: 0.05, x: 1, y: 2, z: 3, qw: 1, qx: 0, qy: 0, qz: 0}, {id: 45, size: 0.05, x: 1,  y: 2, z: 3, qw: 1, qx: 0, qy: 0, qz: 0}]}]"
 # Due to a design choice of the underlying yaml-cpp library, there must be a space after field names, e.g. "id: 42" is correct, whereas "id:42" is not.
-std_msgs/String tag_bundles
+string tag_bundles
 ---

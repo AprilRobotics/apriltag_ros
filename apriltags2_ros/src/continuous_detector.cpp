@@ -99,13 +99,13 @@ void ContinuousDetector::imageCallback (
 
 bool ContinuousDetector::updateBundle(UpdateBundle::Request & req, UpdateBundle::Response & /* res */)
 {
-  tag_detector_->updateBundle(req.tag_bundles.data);
+  tag_detector_->updateBundle(req.tag_bundles);
   return true;
 }
 
 bool ContinuousDetector::removeBundle(RemoveBundle::Request & req, RemoveBundle::Response & /* res */)
 {
-  tag_detector_->removeBundle(req.bundle_name.data);
+  tag_detector_->removeBundle(req.bundle_name);
   return true;
 }
 
