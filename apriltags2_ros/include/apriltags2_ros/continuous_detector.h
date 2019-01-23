@@ -33,7 +33,7 @@
  * Wrapper class of TagDetector class which calls TagDetector::detectTags on
  * each newly arrived image published by a camera.
  *
- * $Revision: 1.0 $
+ * $Revision: 1.1 $
  * $Date: 2017/12/17 13:25:52 $
  * $Author: dmalyuta $
  *
@@ -43,11 +43,13 @@
 #ifndef APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
 #define APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
 
-#include "apriltags2_ros/common_functions.h"
-
 #include <memory>
 
 #include <nodelet/nodelet.h>
+
+#include <apriltags2_ros/common_functions.h>
+#include <apriltags2_ros/RemoveBundle.h>
+#include <apriltags2_ros/UpdateBundle.h>
 
 namespace apriltags2_ros
 {
@@ -61,6 +63,10 @@ class ContinuousDetector: public nodelet::Nodelet
   void imageCallback(const sensor_msgs::ImageConstPtr& image_rect,
                      const sensor_msgs::CameraInfoConstPtr& camera_info);
 
+  /* Services to add/update or remove a bundle. */
+  bool updateBundle(UpdateBundle::Request & req, UpdateBundle::Response & res);
+  bool removeBundle(RemoveBundle::Request & req, RemoveBundle::Response & res);
+
  private:
   std::shared_ptr<TagDetector> tag_detector_;
   bool draw_tag_detections_image_;
@@ -70,6 +76,8 @@ class ContinuousDetector: public nodelet::Nodelet
   image_transport::CameraSubscriber camera_image_subscriber_;
   image_transport::Publisher tag_detections_image_publisher_;
   ros::Publisher tag_detections_publisher_;
+  ros::ServiceServer update_bundle_server_;
+  ros::ServiceServer remove_bundle_server_;
 };
 
 } // namespace apriltags2_ros

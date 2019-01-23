@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(Eigen REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 # Set the build type.  Options are:
 #  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
@@ -51,6 +52,8 @@ add_message_files(
 add_service_files(
   FILES
   AnalyzeSingleImage.srv
+  RemoveBundle.srv
+  UpdateBundle.srv
 )
 
 generate_messages(
@@ -74,6 +77,7 @@ include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${Eigen_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${YAML_CPP_INCLUDE_DIRS}
 )
 
 add_library(common src/common_functions.cpp)
@@ -82,6 +86,7 @@ target_link_libraries(common
   ${catkin_LIBRARIES}
   ${Eigen_LIBRARIES}
   ${OpenCV_LIBRARIES}
+  ${YAML_CPP_LIBRARIES}
 )
 
 add_library(continuous_detector src/continuous_detector.cpp)
