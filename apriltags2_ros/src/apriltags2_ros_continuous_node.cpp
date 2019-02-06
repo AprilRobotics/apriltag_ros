@@ -42,8 +42,8 @@ int main(int argc, char **argv)
   nodelet::V_string nargv;
 
   nodelet.load(ros::this_node::getName(),
-              "apriltags2_ros/ContinuousDetector",
-              remap, nargv);
+               "apriltags2_ros/ContinuousDetector",
+               remap, nargv);
 
   ros::spin();
   return 0;

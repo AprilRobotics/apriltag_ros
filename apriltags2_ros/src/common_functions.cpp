@@ -42,22 +42,21 @@
 namespace apriltags2_ros
 {
 
-TagDetector::TagDetector(ros::NodeHandle pnh) :
-    family_(getAprilTagOption<std::string>(pnh, "tag_family", "tag36h11")),
-    border_(getAprilTagOption<int>(pnh, "tag_border", 1)),
-    threads_(getAprilTagOption<int>(pnh, "tag_threads", 4)),
-    decimate_(getAprilTagOption<double>(pnh, "tag_decimate", 1.0)),
-    blur_(getAprilTagOption<double>(pnh, "tag_blur", 0.0)),
-    refine_edges_(getAprilTagOption<int>(pnh, "tag_refine_edges", 1)),
-    refine_decode_(getAprilTagOption<int>(pnh, "tag_refine_decode", 0)),
-    refine_pose_(getAprilTagOption<int>(pnh, "tag_refine_pose", 0)),
-    debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
-    publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false))
+TagDetector::TagDetector(ros::NodeHandle pnh) : family_(getAprilTagOption<std::string>(pnh, "tag_family", "tag36h11")),
+                                                border_(getAprilTagOption<int>(pnh, "tag_border", 1)),
+                                                threads_(getAprilTagOption<int>(pnh, "tag_threads", 4)),
+                                                decimate_(getAprilTagOption<double>(pnh, "tag_decimate", 1.0)),
+                                                blur_(getAprilTagOption<double>(pnh, "tag_blur", 0.0)),
+                                                refine_edges_(getAprilTagOption<int>(pnh, "tag_refine_edges", 1)),
+                                                refine_decode_(getAprilTagOption<int>(pnh, "tag_refine_decode", 0)),
+                                                refine_pose_(getAprilTagOption<int>(pnh, "tag_refine_pose", 0)),
+                                                debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
+                                                publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false))
 {
   // Parse standalone tag descriptions specified by user (stored on ROS
   // parameter server)
   XmlRpc::XmlRpcValue standalone_tag_descriptions;
-  if(!pnh.getParam("standalone_tags", standalone_tag_descriptions))
+  if (!pnh.getParam("standalone_tags", standalone_tag_descriptions))
   {
     ROS_WARN("No april tags specified");
   }
@@ -68,18 +67,17 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
       standalone_tag_descriptions_ =
           parseStandaloneTags(standalone_tag_descriptions);
     }
-    catch(XmlRpc::XmlRpcException e)
+    catch (XmlRpc::XmlRpcException e)
     {
       // in case any of the asserts in parseStandaloneTags() fail
-      ROS_ERROR_STREAM("Error loading standalone tag descriptions: " <<
-                       e.getMessage().c_str());
+      ROS_ERROR_STREAM("Error loading standalone tag descriptions: " << e.getMessage().c_str());
     }
   }
 
   // parse tag bundle descriptions specified by user (stored on ROS parameter
   // server)
   XmlRpc::XmlRpcValue tag_bundle_descriptions;
-  if(!pnh.getParam("tag_bundles", tag_bundle_descriptions))
+  if (!pnh.getParam("tag_bundles", tag_bundle_descriptions))
   {
     ROS_WARN("No tag bundles specified");
   }
@@ -89,16 +87,15 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     {
       tag_bundle_descriptions_ = parseTagBundles(tag_bundle_descriptions);
     }
-    catch(XmlRpc::XmlRpcException e)
+    catch (XmlRpc::XmlRpcException e)
     {
       // In case any of the asserts in parseStandaloneTags() fail
-      ROS_ERROR_STREAM("Error loading tag bundle descriptions: " <<
-                       e.getMessage().c_str());
+      ROS_ERROR_STREAM("Error loading tag bundle descriptions: " << e.getMessage().c_str());
     }
   }
 
   // Optionally remove duplicate detections in scene. Defaults to removing
-  if(!pnh.getParam("remove_duplicates", remove_duplicates_))
+  if (!pnh.getParam("remove_duplicates", remove_duplicates_))
   {
     ROS_WARN("remove_duplicates parameter not provided. Defaulting to true");
     remove_duplicates_ = true;
@@ -152,10 +149,16 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     ROS_WARN_STREAM("Camera frame not specified, using 'camera'");
     camera_tf_frame_ = "camera";
   }
+
+  //CUTOMIZATION
+  isRectificationMapInitialized = false;
+  pnh.getParam("cameraDistortionModel", cameraDistortionModel_);
+  //CUSTOMIZATION
 }
 
 // destructor
-TagDetector::~TagDetector() {
+TagDetector::~TagDetector()
+{
   // free memory associated with tag detector
   apriltag_detector_destroy(td_);
 
@@ -185,17 +188,36 @@ TagDetector::~TagDetector() {
   }
 }
 
-AprilTagDetectionArray TagDetector::detectTags (
-    const cv_bridge::CvImagePtr& image,
-    const sensor_msgs::CameraInfoConstPtr& camera_info) {
-  // Convert image to AprilTag code's format
+AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &image,
+                                               const sensor_msgs::CameraInfoConstPtr &camera_info)
+{
+  // Convert image to Grayscale
   cv::Mat gray_image;
-  cv::cvtColor(image->image, gray_image, CV_BGR2GRAY);
-  image_u8_t apriltags2_image = { .width = gray_image.cols,
-                                  .height = gray_image.rows,
-                                  .stride = gray_image.cols,
-                                  .buf = gray_image.data
-  };
+  if (image->image.channels() == 3) //CUSTOMIZATION
+    cv::cvtColor(image->image, gray_image, CV_BGR2GRAY);
+  else
+    image->image.copyTo(gray_image);
+
+  //Perform Undistortion and Rectification
+  if (!isRectificationMapInitialized)
+  {
+    //Check model and create map //TODO: find a better way to do this
+    if (cameraDistortionModel_ == "radtan")
+      setRadtanUndistortRectifyMap(*camera_info);
+    else if (cameraDistortionModel_ == "equidistant")
+      setEquidistantUndistortRectifyMap(*camera_info);
+    else
+      ROS_ERROR("Incorrect Camera Distortion Model selected, please set param cameraDistortionModel to either radtan or equidistant");
+  }
+
+  //Rectify Image
+  undistortRectifyImage(gray_image, rectified_image);
+
+  // Convert Image to AprilTag Format
+  image_u8_t apriltags2_image = {.width = rectified_image.cols,
+                                 .height = rectified_image.rows,
+                                 .stride = rectified_image.cols,
+                                 .buf = rectified_image.data};
 
   image_geometry::PinholeCameraModel camera_model;
   camera_model.fromCameraInfo(camera_info);
@@ -226,11 +248,11 @@ AprilTagDetectionArray TagDetector::detectTags (
   // Compute the estimated translation and rotation individually for each
   // detected tag
   AprilTagDetectionArray tag_detection_array;
-  std::vector<std::string > detection_names;
+  std::vector<std::string> detection_names;
   tag_detection_array.header = image->header;
-  std::map<std::string, std::vector<cv::Point3d > > bundleObjectPoints;
-  std::map<std::string, std::vector<cv::Point2d > > bundleImagePoints;
-  for (int i=0; i < zarray_size(detections_); i++)
+  std::map<std::string, std::vector<cv::Point3d>> bundleObjectPoints;
+  std::map<std::string, std::vector<cv::Point2d>> bundleImagePoints;
+  for (int i = 0; i < zarray_size(detections_); i++)
   {
     // Get the i-th detected tag
     apriltag_detection_t *detection;
@@ -243,7 +265,7 @@ AprilTagDetectionArray TagDetector::detectTags (
     // the process of collecting all the object-image corresponding points
     int tagID = detection->id;
     bool is_part_of_bundle = false;
-    for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++)
+    for (unsigned int j = 0; j < tag_bundle_descriptions_.size(); j++)
     {
       // Iterate over the registered bundles
       TagBundleDescription bundle = tag_bundle_descriptions_[j];
@@ -256,7 +278,7 @@ AprilTagDetectionArray TagDetector::detectTags (
         std::string bundleName = bundle.name();
 
         //===== Corner points in the world frame coordinates
-        double s = bundle.memberSize(tagID)/2;
+        double s = bundle.memberSize(tagID) / 2;
         addObjectPoints(s, bundle.memberT_oi(tagID),
                         bundleObjectPoints[bundleName]);
 
@@ -270,11 +292,11 @@ AprilTagDetectionArray TagDetector::detectTags (
     // bundle nor standalone (thus it is a tag in the environment
     // which the user specified no description for, or Apriltags
     // misdetected a tag (bad ID or a false positive)).
-    StandaloneTagDescription* standaloneDescription;
+    StandaloneTagDescription *standaloneDescription;
     if (!findStandaloneTagDescription(tagID, standaloneDescription,
                                       !is_part_of_bundle))
     {
-      continue; 
+      continue;
     }
 
     //=================================================================
@@ -300,16 +322,16 @@ AprilTagDetectionArray TagDetector::detectTags (
     // Using these frames together with cv::solvePnP directly avoids
     // AprilTag 2's frames altogether.
     // TODO solvePnP[Ransac] better?
-    std::vector<cv::Point3d > standaloneTagObjectPoints;
-    std::vector<cv::Point2d > standaloneTagImagePoints;
-    addObjectPoints(tag_size/2, cv::Matx44d::eye(), standaloneTagObjectPoints);
+    std::vector<cv::Point3d> standaloneTagObjectPoints;
+    std::vector<cv::Point2d> standaloneTagImagePoints;
+    addObjectPoints(tag_size / 2, cv::Matx44d::eye(), standaloneTagObjectPoints);
     addImagePoints(detection, standaloneTagImagePoints);
     Eigen::Matrix4d transform = getRelativeTransform(standaloneTagObjectPoints,
                                                      standaloneTagImagePoints,
                                                      fx, fy, cx, cy);
     Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
     Eigen::Quaternion<double> rot_quaternion(rot);
-    
+
     geometry_msgs::PoseWithCovarianceStamped tag_pose =
         makeTagPose(transform, rot_quaternion, image->header);
 
@@ -326,19 +348,19 @@ AprilTagDetectionArray TagDetector::detectTags (
   // Estimate bundle origin pose for each bundle in which at least one
   // member tag was detected
 
-  for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++)
+  for (unsigned int j = 0; j < tag_bundle_descriptions_.size(); j++)
   {
     // Get bundle name
     std::string bundleName = tag_bundle_descriptions_[j].name();
 
     std::map<std::string,
-             std::vector<cv::Point3d> >::iterator it =
+             std::vector<cv::Point3d>>::iterator it =
         bundleObjectPoints.find(bundleName);
     if (it != bundleObjectPoints.end())
     {
       // Some member tags of this bundle were detected, get the bundle's
       // position!
-      TagBundleDescription& bundle = tag_bundle_descriptions_[j];
+      TagBundleDescription &bundle = tag_bundle_descriptions_[j];
 
       Eigen::Matrix4d transform =
           getRelativeTransform(bundleObjectPoints[bundleName],
@@ -360,8 +382,10 @@ AprilTagDetectionArray TagDetector::detectTags (
   }
 
   // If set, publish the transform /tf topic
-  if (publish_tf_) {
-    for (unsigned int i=0; i<tag_detection_array.detections.size(); i++) {
+  if (publish_tf_)
+  {
+    for (unsigned int i = 0; i < tag_detection_array.detections.size(); i++)
+    {
       geometry_msgs::PoseStamped pose;
       pose.pose = tag_detection_array.detections[i].pose.pose.pose;
       pose.header = tag_detection_array.detections[i].pose.header;
@@ -377,21 +401,21 @@ AprilTagDetectionArray TagDetector::detectTags (
   return tag_detection_array;
 }
 
-int TagDetector::idComparison (const void* first, const void* second)
+int TagDetector::idComparison(const void *first, const void *second)
 {
-  int id1 = ((apriltag_detection_t*) first)->id;
-  int id2 = ((apriltag_detection_t*) second)->id;
+  int id1 = ((apriltag_detection_t *)first)->id;
+  int id2 = ((apriltag_detection_t *)second)->id;
   return (id1 < id2) ? -1 : ((id1 == id2) ? 0 : 1);
 }
 
-void TagDetector::removeDuplicates ()
+void TagDetector::removeDuplicates()
 {
   zarray_sort(detections_, &idComparison);
   int count = 0;
   bool duplicate_detected = false;
   while (true)
   {
-    if (count > zarray_size(detections_)-1)
+    if (count > zarray_size(detections_) - 1)
     {
       // The entire detection set was parsed
       return;
@@ -402,9 +426,9 @@ void TagDetector::removeDuplicates ()
     // Default id_next value of -1 ensures that if the last detection
     // is a duplicated tag ID, it will get removed
     int id_next = -1;
-    if (count < zarray_size(detections_)-1)
+    if (count < zarray_size(detections_) - 1)
     {
-      zarray_get(detections_, count+1, &detection);
+      zarray_get(detections_, count + 1, &detection);
       id_next = detection->id;
     }
     if (id_current == id_next || (id_current != id_next && duplicate_detected))
@@ -416,7 +440,7 @@ void TagDetector::removeDuplicates ()
       if (id_current != id_next)
       {
         ROS_WARN_STREAM("Pruning tag ID " << id_current << " because it "
-                        "appears more than once in the image.");
+                                                           "appears more than once in the image.");
         duplicate_detected = false; // Reset
       }
       continue;
@@ -428,29 +452,26 @@ void TagDetector::removeDuplicates ()
   }
 }
 
-void TagDetector::addObjectPoints (
-    double s, cv::Matx44d T_oi, std::vector<cv::Point3d >& objectPoints) const
+void TagDetector::addObjectPoints(double s, cv::Matx44d T_oi, std::vector<cv::Point3d> &objectPoints) const
 {
   // Add to object point vector the tag corner coordinates in the bundle frame
   // Going counterclockwise starting from the bottom left corner
-  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0)*cv::Vec4d(-s,-s, 0, 1));
-  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0)*cv::Vec4d( s,-s, 0, 1));
-  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0)*cv::Vec4d( s, s, 0, 1));
-  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0)*cv::Vec4d(-s, s, 0, 1));
+  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0) * cv::Vec4d(-s, -s, 0, 1));
+  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0) * cv::Vec4d(s, -s, 0, 1));
+  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0) * cv::Vec4d(s, s, 0, 1));
+  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0) * cv::Vec4d(-s, s, 0, 1));
 }
 
-void TagDetector::addImagePoints (
-    apriltag_detection_t *detection,
-    std::vector<cv::Point2d >& imagePoints) const
+void TagDetector::addImagePoints(apriltag_detection_t *detection, std::vector<cv::Point2d> &imagePoints) const
 {
   // Add to image point vector the tag corners in the image frame
   // Going counterclockwise starting from the bottom left corner
-  double tag_x[4] = {-1,1,1,-1};
-  double tag_y[4] = {1,1,-1,-1}; // Negated because AprilTag tag local
-                                 // frame has y-axis pointing DOWN
-                                 // while we use the tag local frame
-                                 // with y-axis pointing UP
-  for (int i=0; i<4; i++)
+  double tag_x[4] = {-1, 1, 1, -1};
+  double tag_y[4] = {1, 1, -1, -1}; // Negated because AprilTag tag local
+                                    // frame has y-axis pointing DOWN
+                                    // while we use the tag local frame
+                                    // with y-axis pointing UP
+  for (int i = 0; i < 4; i++)
   {
     // Homography projection taking tag local frame coordinates to image pixels
     double im_x, im_y;
@@ -459,18 +480,17 @@ void TagDetector::addImagePoints (
   }
 }
 
-Eigen::Matrix4d TagDetector::getRelativeTransform(
-    std::vector<cv::Point3d > objectPoints,
-    std::vector<cv::Point2d > imagePoints,
-    double fx, double fy, double cx, double cy) const
+Eigen::Matrix4d TagDetector::getRelativeTransform(std::vector<cv::Point3d> objectPoints,
+                                                  std::vector<cv::Point2d> imagePoints,
+                                                  double fx, double fy, double cx, double cy) const
 {
   // perform Perspective-n-Point camera pose estimation using the
   // above 3D-2D point correspondences
   cv::Mat rvec, tvec;
-  cv::Matx33d cameraMatrix(fx,  0, cx,
-                           0,  fy, cy,
-                           0,   0,  1);
-  cv::Vec4f distCoeffs(0,0,0,0); // distortion coefficients
+  cv::Matx33d cameraMatrix(fx, 0, cx,
+                           0, fy, cy,
+                           0, 0, 1);
+  cv::Vec4f distCoeffs(0, 0, 0, 0); // distortion coefficients
   // TODO Perhaps something like SOLVEPNP_EPNP would be faster? Would
   // need to first check WHAT is a bottleneck in this code, and only
   // do this if PnP solution is the bottleneck.
@@ -478,27 +498,25 @@ Eigen::Matrix4d TagDetector::getRelativeTransform(
   cv::Matx33d R;
   cv::Rodrigues(rvec, R);
   Eigen::Matrix3d wRo;
-  wRo << R(0,0), R(0,1), R(0,2), R(1,0), R(1,1), R(1,2), R(2,0), R(2,1), R(2,2);
+  wRo << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
 
   Eigen::Matrix4d T; // homogeneous transformation matrix
   T.topLeftCorner(3, 3) = wRo;
-  T.col(3).head(3) <<
-      tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2);
-  T.row(3) << 0,0,0,1;
+  T.col(3).head(3) << tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2);
+  T.row(3) << 0, 0, 0, 1;
   return T;
 }
 
-geometry_msgs::PoseWithCovarianceStamped TagDetector::makeTagPose(
-    const Eigen::Matrix4d& transform,
-    const Eigen::Quaternion<double> rot_quaternion,
-    const std_msgs::Header& header)
+geometry_msgs::PoseWithCovarianceStamped TagDetector::makeTagPose(const Eigen::Matrix4d &transform,
+                                                                  const Eigen::Quaternion<double> rot_quaternion,
+                                                                  const std_msgs::Header &header)
 {
   geometry_msgs::PoseWithCovarianceStamped pose;
   pose.header = header;
   //===== Position and orientation
-  pose.pose.pose.position.x    = transform(0, 3);
-  pose.pose.pose.position.y    = transform(1, 3);
-  pose.pose.pose.position.z    = transform(2, 3);
+  pose.pose.pose.position.x = transform(0, 3);
+  pose.pose.pose.position.y = transform(1, 3);
+  pose.pose.pose.position.z = transform(2, 3);
   pose.pose.pose.orientation.x = rot_quaternion.x();
   pose.pose.pose.orientation.y = rot_quaternion.y();
   pose.pose.pose.orientation.z = rot_quaternion.z();
@@ -506,8 +524,14 @@ geometry_msgs::PoseWithCovarianceStamped TagDetector::makeTagPose(
   return pose;
 }
 
-void TagDetector::drawDetections (cv_bridge::CvImagePtr image)
+// Draw Detections on Image
+void TagDetector::drawDetections(cv_bridge::CvImagePtr image)
 {
+
+  //CUSTOMIZATION
+  cv::cvtColor(rectified_image, image->image, CV_GRAY2BGR); //use colorized rectified image for drawing purposes
+  //CUSTOMIZATION
+
   for (int i = 0; i < zarray_size(detections_); i++)
   {
     apriltag_detection_t *det;
@@ -517,7 +541,7 @@ void TagDetector::drawDetections (cv_bridge::CvImagePtr image)
     // Check if is part of a tag bundle
     int tagID = det->id;
     bool is_part_of_bundle = false;
-    for (unsigned int j=0; j<tag_bundle_descriptions_.size(); j++)
+    for (unsigned int j = 0; j < tag_bundle_descriptions_.size(); j++)
     {
       TagBundleDescription bundle = tag_bundle_descriptions_[j];
       if (bundle.id2idx_.find(tagID) != bundle.id2idx_.end())
@@ -527,7 +551,7 @@ void TagDetector::drawDetections (cv_bridge::CvImagePtr image)
       }
     }
     // If not part of a bundle, check if defined as a standalone tag
-    StandaloneTagDescription* standaloneDescription;
+    StandaloneTagDescription *standaloneDescription;
     if (!is_part_of_bundle &&
         !findStandaloneTagDescription(tagID, standaloneDescription, false))
     {
@@ -563,15 +587,14 @@ void TagDetector::drawDetections (cv_bridge::CvImagePtr image)
     cv::Size textsize = cv::getTextSize(text, fontface,
                                         fontscale, 2, &baseline);
     cv::putText(image->image, text,
-                cv::Point((int)(det->c[0]-textsize.width/2),
-                          (int)(det->c[1]+textsize.height/2)),
+                cv::Point((int)(det->c[0] - textsize.width / 2),
+                          (int)(det->c[1] + textsize.height / 2)),
                 fontface, fontscale, cv::Scalar(0xff, 0x99, 0), 2);
   }
 }
 
 // Parse standalone tag descriptions
-std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags (
-    XmlRpc::XmlRpcValue& standalone_tags)
+std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags(XmlRpc::XmlRpcValue &standalone_tags)
 {
   // Create map that will be filled by the function and returned in the end
   std::map<int, StandaloneTagDescription> descriptions;
@@ -582,7 +605,7 @@ std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags (
   {
 
     // i-th tag description
-    XmlRpc::XmlRpcValue& tag_description = standalone_tags[i];
+    XmlRpc::XmlRpcValue &tag_description = standalone_tags[i];
 
     // Assert the tag description is a struct
     ROS_ASSERT(tag_description.getType() ==
@@ -600,7 +623,7 @@ std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags (
 
     // Custom frame name, if such a field exists for this tag
     std::string frame_name;
-    if(tag_description.hasMember("name"))
+    if (tag_description.hasMember("name"))
     {
       // Assert type of field "name" is a string
       ROS_ASSERT(tag_description["name"].getType() ==
@@ -615,8 +638,7 @@ std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags (
     }
 
     StandaloneTagDescription description(id, size, frame_name);
-    ROS_INFO_STREAM("Loaded tag config: " << id << ", size: " <<
-                    size << ", frame_name: " << frame_name.c_str());
+    ROS_INFO_STREAM("Loaded tag config: " << id << ", size: " << size << ", frame_name: " << frame_name.c_str());
     // Add this tag's description to map of descriptions
     descriptions.insert(std::make_pair(id, description));
   }
@@ -625,18 +647,17 @@ std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags (
 }
 
 // parse tag bundle descriptions
-std::vector<TagBundleDescription > TagDetector::parseTagBundles (
-    XmlRpc::XmlRpcValue& tag_bundles)
+std::vector<TagBundleDescription> TagDetector::parseTagBundles(XmlRpc::XmlRpcValue &tag_bundles)
 {
-  std::vector<TagBundleDescription > descriptions;
+  std::vector<TagBundleDescription> descriptions;
   ROS_ASSERT(tag_bundles.getType() == XmlRpc::XmlRpcValue::TypeArray);
 
   // Loop through all tag bundle descritions
-  for (int32_t i=0; i<tag_bundles.size(); i++)
+  for (int32_t i = 0; i < tag_bundles.size(); i++)
   {
     ROS_ASSERT(tag_bundles[i].getType() == XmlRpc::XmlRpcValue::TypeStruct);
     // i-th tag bundle description
-    XmlRpc::XmlRpcValue& bundle_description = tag_bundles[i];
+    XmlRpc::XmlRpcValue &bundle_description = tag_bundles[i];
 
     std::string bundleName;
     if (bundle_description.hasMember("name"))
@@ -652,17 +673,17 @@ std::vector<TagBundleDescription > TagDetector::parseTagBundles (
       bundleName = bundle_name_stream.str();
     }
     TagBundleDescription bundle_i(bundleName);
-    ROS_INFO("Loading tag bundle '%s'",bundle_i.name().c_str());
-    
+    ROS_INFO("Loading tag bundle '%s'", bundle_i.name().c_str());
+
     ROS_ASSERT(bundle_description["layout"].getType() ==
                XmlRpc::XmlRpcValue::TypeArray);
-    XmlRpc::XmlRpcValue& member_tags = bundle_description["layout"];
+    XmlRpc::XmlRpcValue &member_tags = bundle_description["layout"];
 
     // Loop through each member tag of the bundle
-    for (int32_t j=0; j<member_tags.size(); j++)
-    {      
+    for (int32_t j = 0; j < member_tags.size(); j++)
+    {
       ROS_ASSERT(member_tags[j].getType() == XmlRpc::XmlRpcValue::TypeStruct);
-      XmlRpc::XmlRpcValue& tag = member_tags[j];
+      XmlRpc::XmlRpcValue &tag = member_tags[j];
 
       ROS_ASSERT(tag["id"].getType() == XmlRpc::XmlRpcValue::TypeInt);
       int id = tag["id"];
@@ -672,16 +693,16 @@ std::vector<TagBundleDescription > TagDetector::parseTagBundles (
 
       // Make sure that if this tag was specified also as standalone,
       // then the sizes match
-      StandaloneTagDescription* standaloneDescription;
+      StandaloneTagDescription *standaloneDescription;
       if (findStandaloneTagDescription(id, standaloneDescription, false))
       {
-        ROS_ASSERT(size == standaloneDescription->size()); 
+        ROS_ASSERT(size == standaloneDescription->size());
       }
-      
+
       // Get this tag's pose with respect to the bundle origin
-      double x  = xmlRpcGetDoubleWithDefault(tag, "x", 0.);
-      double y  = xmlRpcGetDoubleWithDefault(tag, "y", 0.);
-      double z  = xmlRpcGetDoubleWithDefault(tag, "z", 0.);
+      double x = xmlRpcGetDoubleWithDefault(tag, "x", 0.);
+      double y = xmlRpcGetDoubleWithDefault(tag, "y", 0.);
+      double z = xmlRpcGetDoubleWithDefault(tag, "z", 0.);
       double qw = xmlRpcGetDoubleWithDefault(tag, "qw", 1.);
       double qx = xmlRpcGetDoubleWithDefault(tag, "qx", 0.);
       double qy = xmlRpcGetDoubleWithDefault(tag, "qy", 0.);
@@ -691,10 +712,10 @@ std::vector<TagBundleDescription > TagDetector::parseTagBundles (
       Eigen::Matrix3d R_oi = q_tag.toRotationMatrix();
 
       // Build the rigid transform from tag_j to the bundle origin
-      cv::Matx44d T_mj(R_oi(0,0), R_oi(0,1), R_oi(0,2), x,
-                       R_oi(1,0), R_oi(1,1), R_oi(1,2), y,
-                       R_oi(2,0), R_oi(2,1), R_oi(2,2), z,
-                       0,         0,         0,         1);
+      cv::Matx44d T_mj(R_oi(0, 0), R_oi(0, 1), R_oi(0, 2), x,
+                       R_oi(1, 0), R_oi(1, 1), R_oi(1, 2), y,
+                       R_oi(2, 0), R_oi(2, 1), R_oi(2, 2), z,
+                       0, 0, 0, 1);
 
       // Register the tag member
       bundle_i.addMemberTag(id, size, T_mj);
@@ -708,8 +729,7 @@ std::vector<TagBundleDescription > TagDetector::parseTagBundles (
   return descriptions;
 }
 
-double TagDetector::xmlRpcGetDouble (XmlRpc::XmlRpcValue& xmlValue,
-                                     std::string field) const
+double TagDetector::xmlRpcGetDouble(XmlRpc::XmlRpcValue &xmlValue, std::string field) const
 {
   ROS_ASSERT((xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeDouble) ||
              (xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeInt));
@@ -724,14 +744,12 @@ double TagDetector::xmlRpcGetDouble (XmlRpc::XmlRpcValue& xmlValue,
   }
 }
 
-double TagDetector::xmlRpcGetDoubleWithDefault (XmlRpc::XmlRpcValue& xmlValue,
-                                                std::string field,
-                                                double defaultValue) const
+double TagDetector::xmlRpcGetDoubleWithDefault(XmlRpc::XmlRpcValue &xmlValue, std::string field, double defaultValue) const
 {
   if (xmlValue.hasMember(field))
   {
     ROS_ASSERT((xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeDouble) ||
-        (xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeInt));
+               (xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeInt));
     if (xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeInt)
     {
       int tmp = xmlValue[field];
@@ -748,8 +766,7 @@ double TagDetector::xmlRpcGetDoubleWithDefault (XmlRpc::XmlRpcValue& xmlValue,
   }
 }
 
-bool TagDetector::findStandaloneTagDescription (
-    int id, StandaloneTagDescription*& descriptionContainer, bool printWarning)
+bool TagDetector::findStandaloneTagDescription(int id, StandaloneTagDescription *&descriptionContainer, bool printWarning)
 {
   std::map<int, StandaloneTagDescription>::iterator description_itr =
       standalone_tag_descriptions_.find(id);
@@ -758,12 +775,99 @@ bool TagDetector::findStandaloneTagDescription (
     if (printWarning)
     {
       ROS_WARN_THROTTLE(10.0, "Requested description of standalone tag ID [%d],"
-                        " but no description was found...",id);
+                              " but no description was found...",
+                        id);
     }
     return false;
   }
   descriptionContainer = &(description_itr->second);
   return true;
 }
+
+//CUSTOMIZATION
+//Image undistortion and rectification
+void TagDetector::undistortRectifyImage(const cv::Mat &original_img, cv::Mat &rectified_img)
+{
+  //Image Rectification
+  if (isRectificationMapInitialized)
+  {
+    std::clock_t rect_t = std::clock();
+    cv::remap(original_img, rectified_img, rectifyMap1, rectifyMap2, cv::INTER_LINEAR);
+    std::cout << "Timing - Rectification Re-map: " << float(std::clock() - rect_t) / CLOCKS_PER_SEC * 1000.0 << "ms\n";
+  }
+  else
+    std::cout << "-----------------Undistort-Rectification Map not initialized-----------------\n";
+}
+
+//RADTAN - Undistortion and Rectification Map Initialization
+void TagDetector::setRadtanUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_param)
+{
+  std::cout << "-----------------RADTAN Undistort-Rectification Map initialized-----------------\n";
+  //Check if Rectifcation Map is available
+  if (!isRectificationMapInitialized)
+  {
+    //Get Camera Parameters
+    cameraMatrix = cv::Mat(3, 3, CV_64F, &ros_cam_param.K[0]);
+    distCoeffs = cv::Mat(1, 5, CV_64F, &ros_cam_param.D[0]);
+    std::cout << "Camera Martix:\n"
+              << cameraMatrix << std::endl;
+    std::cout << "Camera Distortion Coefficients: " << distCoeffs << std::endl;
+
+    //Optimal New Camera Matrices (Projection Matrix)
+    cv::Mat optProjMat = cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, cv::Size(ros_cam_param.width, ros_cam_param.height), 0.0);
+    std::cout << "Projection Matrix:\n"
+              << optProjMat << std::endl;
+
+    //Create Rectification and Undistortion Maps
+    cv::Mat tmpRmap1, tmpRmap2;
+    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), optProjMat, cv::Size(ros_cam_param.width, ros_cam_param.height), CV_32FC1, tmpRmap1, tmpRmap2);
+    cv::convertMaps(tmpRmap1, tmpRmap2, rectifyMap1, rectifyMap2, CV_32FC2, true);
+    //std::cout << "Maps, tmpRmap1:" << tmpRmap1.type() << " ,tmpRmap2:" << tmpRmap2.type() << " ,rectifyMap1:" << rectifyMap1.type() << " ,rectifyMap2:" << rectifyMap2.type() << "\n";
+    //Initialized
+    isRectificationMapInitialized = true;
+    std::cout << "-----------------RADTAN Undistort-Rectification Map initialized-----------------\n";
+  }
+  else
+    std::cout << "-----------------Undistort-Rectification Map ALREADY initialized-----------------\n";
+}
+
+//FISHEYE - Undistortion and Rectification Map Initialization
+void TagDetector::setEquidistantUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_param)
+{
+  //Check if Rectifcation Map is available
+  if (!isRectificationMapInitialized)
+  {
+    std::cout << "-----------------EQUIDISTANT Undistort-Rectification Map initialized-----------------\n";
+    //Get Camera Parameters
+    cameraMatrix = cv::Mat(3, 3, CV_64F, &ros_cam_param.K[0]);
+    distCoeffs = cv::Mat(1, 4, CV_64F, &ros_cam_param.D[0]); //4 params - k1, k2, k3, k4
+
+    std::cout
+        << "Camera Martix:\n"
+        << cameraMatrix << std::endl;
+    std::cout << "Camera Distortion Coefficients: " << distCoeffs << std::endl;
+
+    //Optimal New Camera Matrices (Projection Matrix)
+    cv::Mat R = cv::Mat::eye(3, 3, CV_32FC1);
+    cv::Mat optProjMat;
+    cv::fisheye::estimateNewCameraMatrixForUndistortRectify(cameraMatrix, distCoeffs, cv::Size(ros_cam_param.width, ros_cam_param.height), R, optProjMat);
+    std::cout << "Equi-Distant Model - Projection Matrix:\n"
+              << optProjMat << std::endl;
+
+    //Create Rectification and Undistortion Maps
+    //cv::fisheye::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), optProjMat, cv::Size(w, h), CV_32FC1, rectifyMap1, rectifyMap2);
+    cv::Mat tmpMap1, tmpMap2;
+    cv::fisheye::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), optProjMat, cv::Size(ros_cam_param.width, ros_cam_param.height), CV_32FC1, tmpMap1, tmpMap2);
+    cv::convertMaps(tmpMap1, tmpMap2, rectifyMap1, rectifyMap2, CV_32FC2, true);
+    //std::cout << "Maps, tmpMap1:" << tmpMap1.type() << " ,tmpMap2:" << tmpMap2.type() << " ,rectifyMap1:" << rectifyMap1.type() << " ,rectifyMap2:" << rectifyMap2.type() << "\n";
+
+    //Initialized
+    isRectificationMapInitialized = true;
+    std::cout << "-----------------EQUIDISTANT Undistort-Rectification Map initialized-----------------\n";
+  }
+  else
+    std::cout << "-----------------Undistort-Rectification Map ALREADY initialized-----------------\n";
+}
+//CUSTOMIZATION
 
 } // namespace apriltags2_ros
