@@ -189,11 +189,11 @@ class TagDetector
     std::string camera_tf_frame_;
 
     //CUSTOMIZATION
+    bool undistortInputImage_;
     std::string cameraDistortionModel_;
-    bool isRectificationMapInitialized;
-    cv::Mat cameraMatrix, distCoeffs;
-    cv::Mat rectifyMap1, rectifyMap2;
-    cv::Mat rectified_image;
+    bool isUndistortionMapInitialized_;
+    cv::Mat undistortMap1_, undistortMap2_;
+    cv::Mat undistortedImage_;
     void undistortRectifyImage(const cv::Mat &original_img, cv::Mat &rectified_img);
     void setRadtanUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_param);
     void setEquidistantUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_param);

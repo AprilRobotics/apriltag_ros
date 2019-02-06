@@ -151,7 +151,9 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(getAprilTagOption<std::s
   }
 
   //CUTOMIZATION
-  isRectificationMapInitialized = false;
+  isUndistortionMapInitialized_ = false;
+  undistortInputImage_ = false;
+  pnh.getParam("undistortInputImage", undistortInputImage_);
   pnh.getParam("cameraDistortionModel", cameraDistortionModel_);
   //CUSTOMIZATION
 }
@@ -198,26 +200,33 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
   else
     image->image.copyTo(gray_image);
 
-  //Perform Undistortion and Rectification
-  if (!isRectificationMapInitialized)
+  //Perform Input Image Undistortion and Rectification
+  if (undistortInputImage_)
   {
-    //Check model and create map //TODO: find a better way to do this
-    if (cameraDistortionModel_ == "radtan")
-      setRadtanUndistortRectifyMap(*camera_info);
-    else if (cameraDistortionModel_ == "equidistant")
-      setEquidistantUndistortRectifyMap(*camera_info);
-    else
-      ROS_ERROR("Incorrect Camera Distortion Model selected, please set param cameraDistortionModel to either radtan or equidistant");
-  }
+    //Initialize Undistortion Map
+    if (!isUndistortionMapInitialized_)
+    {
+      //Check model and create map //TODO: find a better way to do this
+      if (cameraDistortionModel_ == "radtan")
+        setRadtanUndistortRectifyMap(*camera_info);
+      else if (cameraDistortionModel_ == "equidistant")
+        setEquidistantUndistortRectifyMap(*camera_info);
+      else
+        ROS_ERROR("AprilTags2: Incorrect Camera Distortion Model selected, please set param cameraDistortionModel to either radtan or equidistant");
+    }
 
-  //Rectify Image
-  undistortRectifyImage(gray_image, rectified_image);
+    //Rectify Image
+    undistortRectifyImage(gray_image, undistortedImage_);
+  }
+  else
+  {
+    ROS_INFO_ONCE("AprilTags2: Input Image is NOT undistorted");
+    gray_image.copyTo(undistortedImage_);
+  }
+    
 
   // Convert Image to AprilTag Format
-  image_u8_t apriltags2_image = {.width = rectified_image.cols,
-                                 .height = rectified_image.rows,
-                                 .stride = rectified_image.cols,
-                                 .buf = rectified_image.data};
+  image_u8_t apriltags2_image = {.width = undistortedImage_.cols, .height = undistortedImage_.rows, .stride = undistortedImage_.cols, .buf = undistortedImage_.data};
 
   image_geometry::PinholeCameraModel camera_model;
   camera_model.fromCameraInfo(camera_info);
@@ -529,7 +538,7 @@ void TagDetector::drawDetections(cv_bridge::CvImagePtr image)
 {
 
   //CUSTOMIZATION
-  cv::cvtColor(rectified_image, image->image, CV_GRAY2BGR); //use colorized rectified image for drawing purposes
+  cv::cvtColor(undistortedImage_, image->image, CV_GRAY2BGR); //use colorized version of image that was used for detection
   //CUSTOMIZATION
 
   for (int i = 0; i < zarray_size(detections_); i++)
@@ -789,11 +798,11 @@ bool TagDetector::findStandaloneTagDescription(int id, StandaloneTagDescription 
 void TagDetector::undistortRectifyImage(const cv::Mat &original_img, cv::Mat &rectified_img)
 {
   //Image Rectification
-  if (isRectificationMapInitialized)
+  if (isUndistortionMapInitialized_)
   {
-    std::clock_t rect_t = std::clock();
-    cv::remap(original_img, rectified_img, rectifyMap1, rectifyMap2, cv::INTER_LINEAR);
-    std::cout << "Timing - Rectification Re-map: " << float(std::clock() - rect_t) / CLOCKS_PER_SEC * 1000.0 << "ms\n";
+    //std::clock_t rect_t = std::clock();
+    cv::remap(original_img, rectified_img, undistortMap1_, undistortMap2_, cv::INTER_LINEAR); //INTER_LINEAR(map:CV_16SC2, nninterpolation=false, avg:5.7ms) or INTER_NEAREST(map:CV_16SC2, nninterpolation=true, 1~2ms) or INTER_LINEAR(map:CV_32FC2, nninterpolation=false, avg:9.2ms)
+    //std::cout << "Timing - Rectification Re-map: " << float(std::clock() - rect_t) / CLOCKS_PER_SEC * 1000.0 << "ms\n";
   }
   else
     std::cout << "-----------------Undistort-Rectification Map not initialized-----------------\n";
@@ -804,27 +813,22 @@ void TagDetector::setRadtanUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_p
 {
   std::cout << "-----------------RADTAN Undistort-Rectification Map initialized-----------------\n";
   //Check if Rectifcation Map is available
-  if (!isRectificationMapInitialized)
+  if (!isUndistortionMapInitialized_)
   {
     //Get Camera Parameters
-    cameraMatrix = cv::Mat(3, 3, CV_64F, &ros_cam_param.K[0]);
-    distCoeffs = cv::Mat(1, 5, CV_64F, &ros_cam_param.D[0]);
+    cv::Mat cameraMatrix = cv::Mat(3, 3, CV_64F, &ros_cam_param.K[0]);
+    cv::Mat distCoeffs = cv::Mat(1, 5, CV_64F, &ros_cam_param.D[0]); //5 params - k1, k2, p1, p2, k3
     std::cout << "Camera Martix:\n"
               << cameraMatrix << std::endl;
     std::cout << "Camera Distortion Coefficients: " << distCoeffs << std::endl;
 
-    //Optimal New Camera Matrices (Projection Matrix)
-    cv::Mat optProjMat = cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, cv::Size(ros_cam_param.width, ros_cam_param.height), 0.0);
-    std::cout << "Projection Matrix:\n"
-              << optProjMat << std::endl;
-
     //Create Rectification and Undistortion Maps
     cv::Mat tmpRmap1, tmpRmap2;
-    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), optProjMat, cv::Size(ros_cam_param.width, ros_cam_param.height), CV_32FC1, tmpRmap1, tmpRmap2);
-    cv::convertMaps(tmpRmap1, tmpRmap2, rectifyMap1, rectifyMap2, CV_32FC2, true);
-    //std::cout << "Maps, tmpRmap1:" << tmpRmap1.type() << " ,tmpRmap2:" << tmpRmap2.type() << " ,rectifyMap1:" << rectifyMap1.type() << " ,rectifyMap2:" << rectifyMap2.type() << "\n";
+    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), cv::noArray(), cv::Size(ros_cam_param.width, ros_cam_param.height), CV_32FC1, tmpRmap1, tmpRmap2);
+    cv::convertMaps(tmpRmap1, tmpRmap2, undistortMap1_, undistortMap2_, CV_16SC2, false); //INTER_NEAREST=true, INTER_LINEAR=false
+    
     //Initialized
-    isRectificationMapInitialized = true;
+    isUndistortionMapInitialized_ = true;
     std::cout << "-----------------RADTAN Undistort-Rectification Map initialized-----------------\n";
   }
   else
@@ -835,19 +839,19 @@ void TagDetector::setRadtanUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_p
 void TagDetector::setEquidistantUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_param)
 {
   //Check if Rectifcation Map is available
-  if (!isRectificationMapInitialized)
+  if (!isUndistortionMapInitialized_)
   {
     std::cout << "-----------------EQUIDISTANT Undistort-Rectification Map initialized-----------------\n";
     //Get Camera Parameters
-    cameraMatrix = cv::Mat(3, 3, CV_64F, &ros_cam_param.K[0]);
-    distCoeffs = cv::Mat(1, 4, CV_64F, &ros_cam_param.D[0]); //4 params - k1, k2, k3, k4
+    cv::Mat cameraMatrix = cv::Mat(3, 3, CV_64F, &ros_cam_param.K[0]);
+    cv::Mat distCoeffs = cv::Mat(1, 4, CV_64F, &ros_cam_param.D[0]); //4 params - k1, k2, k3, k4
 
     std::cout
         << "Camera Martix:\n"
         << cameraMatrix << std::endl;
     std::cout << "Camera Distortion Coefficients: " << distCoeffs << std::endl;
 
-    //Optimal New Camera Matrices (Projection Matrix)
+    //Optimal New Camera Matrices (Projection Matrix) //TODO: Check if this can be removed if proper fisheye calibration is used
     cv::Mat R = cv::Mat::eye(3, 3, CV_32FC1);
     cv::Mat optProjMat;
     cv::fisheye::estimateNewCameraMatrixForUndistortRectify(cameraMatrix, distCoeffs, cv::Size(ros_cam_param.width, ros_cam_param.height), R, optProjMat);
@@ -855,14 +859,12 @@ void TagDetector::setEquidistantUndistortRectifyMap(sensor_msgs::CameraInfo ros_
               << optProjMat << std::endl;
 
     //Create Rectification and Undistortion Maps
-    //cv::fisheye::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), optProjMat, cv::Size(w, h), CV_32FC1, rectifyMap1, rectifyMap2);
     cv::Mat tmpMap1, tmpMap2;
     cv::fisheye::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), optProjMat, cv::Size(ros_cam_param.width, ros_cam_param.height), CV_32FC1, tmpMap1, tmpMap2);
-    cv::convertMaps(tmpMap1, tmpMap2, rectifyMap1, rectifyMap2, CV_32FC2, true);
-    //std::cout << "Maps, tmpMap1:" << tmpMap1.type() << " ,tmpMap2:" << tmpMap2.type() << " ,rectifyMap1:" << rectifyMap1.type() << " ,rectifyMap2:" << rectifyMap2.type() << "\n";
+    cv::convertMaps(tmpMap1, tmpMap2, undistortMap1_, undistortMap2_, CV_16SC2, false);
 
     //Initialized
-    isRectificationMapInitialized = true;
+    isUndistortionMapInitialized_ = true;
     std::cout << "-----------------EQUIDISTANT Undistort-Rectification Map initialized-----------------\n";
   }
   else

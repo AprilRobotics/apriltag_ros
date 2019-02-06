@@ -1,9 +1,8 @@
 <launch>
   <arg name="launch_prefix" default="" /> <!-- set to value="gdbserver localhost:10000" for remote debugging -->
   <arg name="node_namespace" default="apriltags2_ros_continuous_node" />
-  <!-- <arg name="camera_name" default="/camera_rect" />
-  <arg name="camera_frame" default="camera" />
-  <arg name="image_topic" default="image_rect" /> -->
+  <arg name="camera_name" default="/ptgrey_node/cam0" />
+  <arg name="image_topic" default="image_raw" /> 
 
   <!-- Set parameters -->
   <rosparam command="load" file="$(find apriltags2_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
@@ -14,6 +13,8 @@
     <!-- Remap topics from those used in code to those on the ROS network -->
     <remap from="image" to="/ptgrey_node/cam0/image_raw"/>
     <remap from="camera_info" to="/ptgrey_node/cam0/camera_info" />
+    
+    <param name="undistortInputImage" type="bool" value="true" />
     <param name="cameraDistortionModel" type="str" value="radtan" /> #radtan or equidistant
     
     <param name="camera_frame" type="str" value="blackfly_camera" />
