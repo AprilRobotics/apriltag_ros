@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   nodelet
   pluginlib
+  std_srvs
 )
 
 find_package(Eigen REQUIRED)

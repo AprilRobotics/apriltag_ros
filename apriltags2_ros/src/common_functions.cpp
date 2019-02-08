@@ -51,7 +51,7 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(getAprilTagOption<std::s
                                                 refine_decode_(getAprilTagOption<int>(pnh, "tag_refine_decode", 0)),
                                                 refine_pose_(getAprilTagOption<int>(pnh, "tag_refine_pose", 0)),
                                                 debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
-                                                publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false))
+                                                publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", true))
 {
   // Parse standalone tag descriptions specified by user (stored on ROS
   // parameter server)
@@ -64,8 +64,7 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(getAprilTagOption<std::s
   {
     try
     {
-      standalone_tag_descriptions_ =
-          parseStandaloneTags(standalone_tag_descriptions);
+      standalone_tag_descriptions_ = parseStandaloneTags(standalone_tag_descriptions);
     }
     catch (XmlRpc::XmlRpcException e)
     {
@@ -144,10 +143,10 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(getAprilTagOption<std::s
   detections_ = NULL;
 
   // Get tf frame name to use for the camera
-  if (!pnh.getParam("camera_frame", camera_tf_frame_))
+  if (!pnh.getParam("camera_frame", camera_frame_))
   {
     ROS_WARN_STREAM("Camera frame not specified, using 'camera'");
-    camera_tf_frame_ = "camera";
+    camera_frame_ = "camera";
   }
 
   //CUTOMIZATION
@@ -155,6 +154,12 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(getAprilTagOption<std::s
   undistortInputImage_ = false;
   pnh.getParam("undistortInputImage", undistortInputImage_);
   pnh.getParam("cameraDistortionModel", cameraDistortionModel_);
+  world_frame_ = "world";
+  target_frame_live_ = "target_live";
+  target_frame_post_ = "target_post";
+  pnh.getParam("world_frame", world_frame_);
+  pnh.getParam("target_frame_live", target_frame_live_);
+  pnh.getParam("target_frame_post", target_frame_post_);
   //CUSTOMIZATION
 }
 
@@ -213,29 +218,33 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
         setEquidistantUndistortRectifyMap(*camera_info);
       else
         ROS_ERROR("AprilTags2: Incorrect Camera Distortion Model selected, please set param cameraDistortionModel to either radtan or equidistant");
+
+      //Set intrinsic properties for newly calculated unrectified Image from Optimal Camera Mtrix
+      fx_ = optimalProjectionMat_.at<double>(0, 0); // Optimal focal length in camera x-direction [px]
+      fy_ = optimalProjectionMat_.at<double>(1, 1); // Optimal focal length in camera y-direction [px]
+      cx_ = optimalProjectionMat_.at<double>(0, 2); // Optimal optical center x-coordinate [px]
+      cy_ = optimalProjectionMat_.at<double>(1, 2); // Optimal optical center y-coordinate [px]
     }
 
-    //Rectify Image
+    //Undistort Image
     undistortRectifyImage(gray_image, undistortedImage_);
   }
   else
   {
     ROS_INFO_ONCE("AprilTags2: Input Image is NOT undistorted");
     gray_image.copyTo(undistortedImage_);
+
+    // Get camera intrinsic properties for rectified image.
+    image_geometry::PinholeCameraModel camera_model;
+    camera_model.fromCameraInfo(camera_info);
+    fx_ = camera_model.fx(); // focal length in camera x-direction [px]
+    fy_ = camera_model.fy(); // focal length in camera y-direction [px]
+    cx_ = camera_model.cx(); // optical center x-coordinate [px]
+    cy_ = camera_model.cy(); // optical center y-coordinate [px]
   }
-    
 
   // Convert Image to AprilTag Format
   image_u8_t apriltags2_image = {.width = undistortedImage_.cols, .height = undistortedImage_.rows, .stride = undistortedImage_.cols, .buf = undistortedImage_.data};
-
-  image_geometry::PinholeCameraModel camera_model;
-  camera_model.fromCameraInfo(camera_info);
-
-  // Get camera intrinsic properties for rectified image.
-  double fx = camera_model.fx(); // focal length in camera x-direction [px]
-  double fy = camera_model.fy(); // focal length in camera y-direction [px]
-  double cx = camera_model.cx(); // optical center x-coordinate [px]
-  double cy = camera_model.cy(); // optical center y-coordinate [px]
 
   // Run AprilTags 2 algorithm on the image
   if (detections_)
@@ -266,13 +275,13 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
     // Get the i-th detected tag
     apriltag_detection_t *detection;
     zarray_get(detections_, i, &detection);
+    int tagID = detection->id;
 
     // Bootstrap this for loop to find this tag's description amongst
     // the tag bundles. If found, add its points to the bundle's set of
     // object-image corresponding points (tag corners) for cv::solvePnP.
     // Don't yet run cv::solvePnP on the bundles, though, since we're still in
     // the process of collecting all the object-image corresponding points
-    int tagID = detection->id;
     bool is_part_of_bundle = false;
     for (unsigned int j = 0; j < tag_bundle_descriptions_.size(); j++)
     {
@@ -288,8 +297,7 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
 
         //===== Corner points in the world frame coordinates
         double s = bundle.memberSize(tagID) / 2;
-        addObjectPoints(s, bundle.memberT_oi(tagID),
-                        bundleObjectPoints[bundleName]);
+        addObjectPoints(s, bundle.memberT_oi(tagID), bundleObjectPoints[bundleName]);
 
         //===== Corner points in the image frame coordinates
         addImagePoints(detection, bundleImagePoints[bundleName]);
@@ -302,16 +310,11 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
     // which the user specified no description for, or Apriltags
     // misdetected a tag (bad ID or a false positive)).
     StandaloneTagDescription *standaloneDescription;
-    if (!findStandaloneTagDescription(tagID, standaloneDescription,
-                                      !is_part_of_bundle))
-    {
-      continue;
-    }
+    if (!findStandaloneTagDescription(tagID, standaloneDescription, !is_part_of_bundle))
+      continue; //If tag not found loop to next tag
 
     //=================================================================
-    // The remainder of this for loop is concerned with standalone tag
-    // poses!
-    double tag_size = standaloneDescription->size();
+    // The remainder of this for loop is concerned with standalone tag poses!
 
     // Get estimated tag pose in the camera frame.
     //
@@ -331,18 +334,19 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
     // Using these frames together with cv::solvePnP directly avoids
     // AprilTag 2's frames altogether.
     // TODO solvePnP[Ransac] better?
+    double tag_size = standaloneDescription->size();
     std::vector<cv::Point3d> standaloneTagObjectPoints;
+    addObjectPoints(tag_size / 2.0, cv::Matx44d::eye(), standaloneTagObjectPoints);
     std::vector<cv::Point2d> standaloneTagImagePoints;
-    addObjectPoints(tag_size / 2, cv::Matx44d::eye(), standaloneTagObjectPoints);
     addImagePoints(detection, standaloneTagImagePoints);
+
     Eigen::Matrix4d transform = getRelativeTransform(standaloneTagObjectPoints,
                                                      standaloneTagImagePoints,
-                                                     fx, fy, cx, cy);
+                                                     fx_, fy_, cx_, cy_);
     Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
     Eigen::Quaternion<double> rot_quaternion(rot);
 
-    geometry_msgs::PoseWithCovarianceStamped tag_pose =
-        makeTagPose(transform, rot_quaternion, image->header);
+    geometry_msgs::PoseWithCovarianceStamped tag_pose = makeTagPose(transform, rot_quaternion, image->header); //Pose of Tag In Camera Frame
 
     // Add the detection to the back of the tag detection array
     AprilTagDetection tag_detection;
@@ -356,7 +360,6 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
   //=================================================================
   // Estimate bundle origin pose for each bundle in which at least one
   // member tag was detected
-
   for (unsigned int j = 0; j < tag_bundle_descriptions_.size(); j++)
   {
     // Get bundle name
@@ -373,7 +376,7 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
 
       Eigen::Matrix4d transform =
           getRelativeTransform(bundleObjectPoints[bundleName],
-                               bundleImagePoints[bundleName], fx, fy, cx, cy);
+                               bundleImagePoints[bundleName], fx_, fy_, cx_, cy_);
       Eigen::Matrix3d rot = transform.block(0, 0, 3, 3);
       Eigen::Quaternion<double> rot_quaternion(rot);
 
@@ -400,14 +403,41 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
       pose.header = tag_detection_array.detections[i].pose.header;
       tf::Stamped<tf::Transform> tag_transform;
       tf::poseStampedMsgToTF(pose, tag_transform);
-      tf_pub_.sendTransform(tf::StampedTransform(tag_transform,
-                                                 tag_transform.stamp_,
-                                                 camera_tf_frame_,
-                                                 detection_names[i]));
+      tf_boradcaster_.sendTransform(tf::StampedTransform(tag_transform,
+                                                         tag_transform.stamp_,
+                                                         camera_frame_,
+                                                         detection_names[i]));
     }
-  }
 
+    //To avoid tf lookup if no tag is detected
+    static bool initTransform = false;
+    if (tag_detection_array.detections.size() > 0)
+    {
+      try
+      {
+        tf_listener_.waitForTransform(world_frame_, target_frame_live_, ros::Time(0), ros::Duration(0.1)); //blocking call for 0.1sec
+        tf_listener_.lookupTransform(world_frame_, target_frame_live_, ros::Time(0), T_worldDARPA_);
+      }
+      catch (tf::TransformException &ex)
+      {
+        ROS_ERROR("%s", ex.what());
+      }
+      tf_boradcaster_.sendTransform(T_worldDARPA_);
+      initTransform = true;
+    }
+    else if (initTransform)
+      tfRepublish(ros::Time::now());
+  }
   return tag_detection_array;
+}
+
+//Updates tf timestamp and republishes it
+void TagDetector::tfRepublish(const ros::Time &current_stamp)
+{
+  T_worldDARPA_.stamp_ = current_stamp;
+  T_worldDARPA_.frame_id_ = world_frame_;
+  T_worldDARPA_.child_frame_id_ = target_frame_post_;
+  tf_boradcaster_.sendTransform(T_worldDARPA_);
 }
 
 int TagDetector::idComparison(const void *first, const void *second)
@@ -448,8 +478,7 @@ void TagDetector::removeDuplicates()
       zarray_remove_index(detections_, count, shuffle);
       if (id_current != id_next)
       {
-        ROS_WARN_STREAM("Pruning tag ID " << id_current << " because it "
-                                                           "appears more than once in the image.");
+        ROS_WARN_STREAM("Pruning tag ID " << id_current << " because it appears more than once in the image.");
         duplicate_detected = false; // Reset
       }
       continue;
@@ -465,7 +494,7 @@ void TagDetector::addObjectPoints(double s, cv::Matx44d T_oi, std::vector<cv::Po
 {
   // Add to object point vector the tag corner coordinates in the bundle frame
   // Going counterclockwise starting from the bottom left corner
-  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0) * cv::Vec4d(-s, -s, 0, 1));
+  objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0) * cv::Vec4d(-s, -s, 0, 1)); //(x,y) and origin center of tag
   objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0) * cv::Vec4d(s, -s, 0, 1));
   objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0) * cv::Vec4d(s, s, 0, 1));
   objectPoints.push_back(T_oi.get_minor<3, 4>(0, 0) * cv::Vec4d(-s, s, 0, 1));
@@ -507,7 +536,9 @@ Eigen::Matrix4d TagDetector::getRelativeTransform(std::vector<cv::Point3d> objec
   cv::Matx33d R;
   cv::Rodrigues(rvec, R);
   Eigen::Matrix3d wRo;
-  wRo << R(0, 0), R(0, 1), R(0, 2), R(1, 0), R(1, 1), R(1, 2), R(2, 0), R(2, 1), R(2, 2);
+  wRo << R(0, 0), R(0, 1), R(0, 2),
+      R(1, 0), R(1, 1), R(1, 2),
+      R(2, 0), R(2, 1), R(2, 2);
 
   Eigen::Matrix4d T; // homogeneous transformation matrix
   T.topLeftCorner(3, 3) = wRo;
@@ -538,7 +569,10 @@ void TagDetector::drawDetections(cv_bridge::CvImagePtr image)
 {
 
   //CUSTOMIZATION
-  cv::cvtColor(undistortedImage_, image->image, CV_GRAY2BGR); //use colorized version of image that was used for detection
+  if (image->image.channels() == 3)                             //Check if original image was color otherwise ImageTransport will have error displaying image
+    cv::cvtColor(undistortedImage_, image->image, CV_GRAY2BGR); //use colorized version of image that was used for detection
+  else
+    undistortedImage_.copyTo(image->image);
   //CUSTOMIZATION
 
   for (int i = 0; i < zarray_size(detections_); i++)
@@ -612,19 +646,15 @@ std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags(XmlRpc:
   // Loop through all tag descriptions
   for (int32_t i = 0; i < standalone_tags.size(); i++)
   {
-
     // i-th tag description
     XmlRpc::XmlRpcValue &tag_description = standalone_tags[i];
 
     // Assert the tag description is a struct
-    ROS_ASSERT(tag_description.getType() ==
-               XmlRpc::XmlRpcValue::TypeStruct);
+    ROS_ASSERT(tag_description.getType() == XmlRpc::XmlRpcValue::TypeStruct);
     // Assert type of field "id" is an int
-    ROS_ASSERT(tag_description["id"].getType() ==
-               XmlRpc::XmlRpcValue::TypeInt);
+    ROS_ASSERT(tag_description["id"].getType() == XmlRpc::XmlRpcValue::TypeInt);
     // Assert type of field "size" is a double
-    ROS_ASSERT(tag_description["size"].getType() ==
-               XmlRpc::XmlRpcValue::TypeDouble);
+    ROS_ASSERT(tag_description["size"].getType() == XmlRpc::XmlRpcValue::TypeDouble);
 
     int id = (int)tag_description["id"]; // tag id
     // Tag size (square, side length in meters)
@@ -635,8 +665,7 @@ std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags(XmlRpc:
     if (tag_description.hasMember("name"))
     {
       // Assert type of field "name" is a string
-      ROS_ASSERT(tag_description["name"].getType() ==
-                 XmlRpc::XmlRpcValue::TypeString);
+      ROS_ASSERT(tag_description["name"].getType() == XmlRpc::XmlRpcValue::TypeString);
       frame_name = (std::string)tag_description["name"];
     }
     else
@@ -738,6 +767,27 @@ std::vector<TagBundleDescription> TagDetector::parseTagBundles(XmlRpc::XmlRpcVal
   return descriptions;
 }
 
+//Check if detected tag id is in the tags.yaml, if not found(probably false positive) then print warning
+bool TagDetector::findStandaloneTagDescription(int id, StandaloneTagDescription *&descriptionContainer, bool printWarning)
+{
+  //Check Tag ID
+  std::map<int, StandaloneTagDescription>::iterator description_itr = standalone_tag_descriptions_.find(id);
+
+  //Tag not found
+  if (description_itr == standalone_tag_descriptions_.end())
+  {
+    if (printWarning)
+    {
+      ROS_WARN_THROTTLE(10.0, "Requested description of standalone tag ID [%d], but no description was found...", id);
+    }
+    return false;
+  }
+
+  //Tag Found
+  descriptionContainer = &(description_itr->second);
+  return true;
+}
+
 double TagDetector::xmlRpcGetDouble(XmlRpc::XmlRpcValue &xmlValue, std::string field) const
 {
   ROS_ASSERT((xmlValue[field].getType() == XmlRpc::XmlRpcValue::TypeDouble) ||
@@ -775,24 +825,6 @@ double TagDetector::xmlRpcGetDoubleWithDefault(XmlRpc::XmlRpcValue &xmlValue, st
   }
 }
 
-bool TagDetector::findStandaloneTagDescription(int id, StandaloneTagDescription *&descriptionContainer, bool printWarning)
-{
-  std::map<int, StandaloneTagDescription>::iterator description_itr =
-      standalone_tag_descriptions_.find(id);
-  if (description_itr == standalone_tag_descriptions_.end())
-  {
-    if (printWarning)
-    {
-      ROS_WARN_THROTTLE(10.0, "Requested description of standalone tag ID [%d],"
-                              " but no description was found...",
-                        id);
-    }
-    return false;
-  }
-  descriptionContainer = &(description_itr->second);
-  return true;
-}
-
 //CUSTOMIZATION
 //Image undistortion and rectification
 void TagDetector::undistortRectifyImage(const cv::Mat &original_img, cv::Mat &rectified_img)
@@ -822,11 +854,16 @@ void TagDetector::setRadtanUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_p
               << cameraMatrix << std::endl;
     std::cout << "Camera Distortion Coefficients: " << distCoeffs << std::endl;
 
+    //Optimal New Camera Matrices (Projection Matrix)
+    optimalProjectionMat_ = cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, cv::Size(ros_cam_param.width, ros_cam_param.height), 0.0);
+    std::cout << "Projection Matrix:\n"
+              << optimalProjectionMat_ << std::endl;
+
     //Create Rectification and Undistortion Maps
     cv::Mat tmpRmap1, tmpRmap2;
-    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), cv::noArray(), cv::Size(ros_cam_param.width, ros_cam_param.height), CV_32FC1, tmpRmap1, tmpRmap2);
+    cv::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), optimalProjectionMat_, cv::Size(ros_cam_param.width, ros_cam_param.height), CV_32FC1, tmpRmap1, tmpRmap2);
     cv::convertMaps(tmpRmap1, tmpRmap2, undistortMap1_, undistortMap2_, CV_16SC2, false); //INTER_NEAREST=true, INTER_LINEAR=false
-    
+
     //Initialized
     isUndistortionMapInitialized_ = true;
     std::cout << "-----------------RADTAN Undistort-Rectification Map initialized-----------------\n";
@@ -851,16 +888,15 @@ void TagDetector::setEquidistantUndistortRectifyMap(sensor_msgs::CameraInfo ros_
         << cameraMatrix << std::endl;
     std::cout << "Camera Distortion Coefficients: " << distCoeffs << std::endl;
 
-    //Optimal New Camera Matrices (Projection Matrix) //TODO: Check if this can be removed if proper fisheye calibration is used
+    //Optimal New Camera Matrices (Projection Matrix) //NOTE: Needed for fisheye calibration otherwise image is black
     cv::Mat R = cv::Mat::eye(3, 3, CV_32FC1);
-    cv::Mat optProjMat;
-    cv::fisheye::estimateNewCameraMatrixForUndistortRectify(cameraMatrix, distCoeffs, cv::Size(ros_cam_param.width, ros_cam_param.height), R, optProjMat);
+    cv::fisheye::estimateNewCameraMatrixForUndistortRectify(cameraMatrix, distCoeffs, cv::Size(ros_cam_param.width, ros_cam_param.height), R, optimalProjectionMat_);
     std::cout << "Equi-Distant Model - Projection Matrix:\n"
-              << optProjMat << std::endl;
+              << optimalProjectionMat_ << std::endl;
 
     //Create Rectification and Undistortion Maps
     cv::Mat tmpMap1, tmpMap2;
-    cv::fisheye::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), optProjMat, cv::Size(ros_cam_param.width, ros_cam_param.height), CV_32FC1, tmpMap1, tmpMap2);
+    cv::fisheye::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::noArray(), optimalProjectionMat_, cv::Size(ros_cam_param.width, ros_cam_param.height), CV_32FC1, tmpMap1, tmpMap2);
     cv::convertMaps(tmpMap1, tmpMap2, undistortMap1_, undistortMap2_, CV_16SC2, false);
 
     //Initialized

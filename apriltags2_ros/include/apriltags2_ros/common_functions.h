@@ -61,6 +61,8 @@
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
+#include <std_srvs/Empty.h>
 
 #include "apriltags2_ros/AprilTagDetection.h"
 #include "apriltags2_ros/AprilTagDetectionArray.h"
@@ -90,10 +92,7 @@ class StandaloneTagDescription
 {
   public:
     StandaloneTagDescription(){};
-    StandaloneTagDescription(int id, double size,
-                             std::string &frame_name) : id_(id),
-                                                        size_(size),
-                                                        frame_name_(frame_name) {}
+    StandaloneTagDescription(int id, double size, std::string &frame_name) : id_(id), size_(size), frame_name_(frame_name) {}
 
     double size() { return size_; }
     int id() { return id_; }
@@ -185,21 +184,28 @@ class TagDetector
     bool remove_duplicates_;
     bool run_quietly_;
     bool publish_tf_;
-    tf::TransformBroadcaster tf_pub_;
-    std::string camera_tf_frame_;
+    tf::TransformBroadcaster tf_boradcaster_;
+    tf::TransformListener tf_listener_;
+    std::string camera_frame_;
 
     //CUSTOMIZATION
+    double fx_, fy_, cx_, cy_;
     bool undistortInputImage_;
     std::string cameraDistortionModel_;
     bool isUndistortionMapInitialized_;
-    cv::Mat undistortMap1_, undistortMap2_;
+    cv::Mat undistortMap1_, undistortMap2_, optimalProjectionMat_;
     cv::Mat undistortedImage_;
     void undistortRectifyImage(const cv::Mat &original_img, cv::Mat &rectified_img);
     void setRadtanUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_param);
     void setEquidistantUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_param);
+    tf::StampedTransform T_worldDARPA_;
+    std::string world_frame_;
+    std::string target_frame_live_;
+    std::string target_frame_post_;
     //CUSTOMIZATION
 
-        public : TagDetector(ros::NodeHandle pnh);
+  public:
+    TagDetector(ros::NodeHandle pnh);
     ~TagDetector();
 
     // Store standalone and bundle tag descriptions
@@ -246,6 +252,10 @@ class TagDetector
 
     // Draw the detected tags' outlines and payload values on the image
     void drawDetections(cv_bridge::CvImagePtr image);
+
+    //CUSTOMIZATION
+    void tfRepublish(const ros::Time &current_stamp);
+    //CUSTOMIZATION
 };
 
 } // namespace apriltags2_ros
