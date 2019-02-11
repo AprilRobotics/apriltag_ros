@@ -20,7 +20,7 @@
   <!-- tf: Body to Camera/BlackFly Frame, T_BodyCamera -->
   <node pkg="tf" type="static_transform_publisher" name="cam2body_tf" args="0 0 0 -1.5708 0 -1.5708 body $(arg camera_frame) 100" />
   <!-- tf: Tag to DARPA Frame, T_TagDARPA -->
-  <node pkg="tf" type="static_transform_publisher" name="tag2darpa_tf" args="1 0 0 0 0 0 tag_6 $(arg target_frame_live) 100" />
+  <node pkg="tf" type="static_transform_publisher" name="tag2darpa_tf" args="0 0 0 1.5708 1.5708 0 tag_1 $(arg target_frame_live) 100" />
   
   <node pkg="apriltags2_ros" type="apriltags2_ros_continuous_node" name="apriltags2_ros_continuous_node" clear_params="true" output="screen" >
   
