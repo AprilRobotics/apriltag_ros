@@ -154,6 +154,7 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(getAprilTagOption<std::s
   undistortInputImage_ = false;
   pnh.getParam("undistortInputImage", undistortInputImage_);
   pnh.getParam("cameraDistortionModel", cameraDistortionModel_);
+  initTransform_ = false;
   world_frame_ = "world";
   target_frame_live_ = "target_live";
   target_frame_post_ = "target_post";
@@ -410,7 +411,6 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
     }
 
     //To avoid tf lookup if no tag is detected
-    static bool initTransform = false;
     if (tag_detection_array.detections.size() > 0)
     {
       try
@@ -423,9 +423,9 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
         ROS_ERROR("%s", ex.what());
       }
       tf_boradcaster_.sendTransform(T_worldDARPA_);
-      initTransform = true;
+      initTransform_ = true;
     }
-    else if (initTransform)
+    else if (initTransform_)
       tfRepublish(ros::Time::now());
   }
   return tag_detection_array;

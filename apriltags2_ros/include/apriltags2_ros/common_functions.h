@@ -254,6 +254,7 @@ class TagDetector
     void drawDetections(cv_bridge::CvImagePtr image);
 
     //CUSTOMIZATION
+    bool initTransform_;
     void tfRepublish(const ros::Time &current_stamp);
     //CUSTOMIZATION
 };

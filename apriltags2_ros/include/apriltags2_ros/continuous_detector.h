@@ -64,8 +64,8 @@ class ContinuousDetector//: public nodelet::Nodelet
    void imageCallback(const sensor_msgs::ImageConstPtr &image_rect,
                       const sensor_msgs::CameraInfoConstPtr &camera_info);
 
+   bool tfStartDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/);  //CUSTOMIZATION
    bool tfStopDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/);    //CUSTOMIZATION
-   bool tfRestartDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/); //CUSTOMIZATION
 
  private:
    std::shared_ptr<TagDetector> tag_detector_;
@@ -79,8 +79,9 @@ class ContinuousDetector//: public nodelet::Nodelet
 
    //CUSTOMIZATION
    bool aprilDetectorOn_;
+   ros::ServiceServer tfStartDetectorSrv_;
    ros::ServiceServer tfStopDetectorSrv_;
-   ros::ServiceServer tfRestartDetectorSrv_;
+   int image_mod_value_;
    //CUSTOMIZATION
 };
 

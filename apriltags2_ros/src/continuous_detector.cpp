@@ -50,6 +50,7 @@ ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pn
 
   //Param
   draw_tag_detections_image_ = getAprilTagOption<bool>(pnh, "publish_tag_detections_image", false);
+  pnh.getParam("image_mod_value", image_mod_value_);
 
   //Create Tag detector
   tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
@@ -64,9 +65,9 @@ ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pn
   }
 
   //Service
-  aprilDetectorOn_ = true;
+  aprilDetectorOn_ = false;
+  tfStartDetectorSrv_ = nh.advertiseService("/aprilTag_startDetector", &ContinuousDetector::tfStartDetectorCallback, this);
   tfStopDetectorSrv_ = nh.advertiseService("/aprilTag_stopDetector", &ContinuousDetector::tfStopDetectorCallback, this);
-  tfRestartDetectorSrv_ = nh.advertiseService("/aprilTag_startDetector", &ContinuousDetector::tfRestartDetectorCallback, this);
 }
 
 /*void ContinuousDetector::onInit()
@@ -98,46 +99,47 @@ ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pn
 
 void ContinuousDetector::imageCallback(const sensor_msgs::ImageConstPtr &image, const sensor_msgs::CameraInfoConstPtr &camera_info)
 {
-
   if (aprilDetectorOn_)
   {
-    // Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
-    // AprilTags 2 on the iamge
-    try
+    //Check if we should get image and try to detected AprilTag2, internal throttle to keep camera image and info msgs timestamps consistent
+    if (image->header.seq % image_mod_value_ == 0)
     {
-      cv_image_ = cv_bridge::toCvCopy(image, image->encoding);
-    }
-    catch (cv_bridge::Exception &e)
-    {
-      ROS_ERROR("cv_bridge exception: %s", e.what());
-      return;
-    }
+      //Get Imnage
+      try
+      {
+        cv_image_ = cv_bridge::toCvCopy(image, image->encoding);
+      }
+      catch (cv_bridge::Exception &e)
+      {
+        ROS_ERROR("cv_bridge exception: %s", e.what());
+        return;
+      }
 
-    // Publish detected tags in the image by AprilTags 2
-    tag_detections_publisher_.publish(tag_detector_->detectTags(cv_image_, camera_info));
+      // Publish detected tags in the image by AprilTags 2
+      tag_detections_publisher_.publish(tag_detector_->detectTags(cv_image_, camera_info));
 
-    // Publish the camera image overlaid by outlines of the detected tags and their payload values
-    if (draw_tag_detections_image_ && tag_detections_image_publisher_.getNumSubscribers() > 0) //CUSTOMIZATION
-    {
-      tag_detector_->drawDetections(cv_image_);
-      tag_detections_image_publisher_.publish(cv_image_->toImageMsg());
+      // Publish the camera image overlaid by outlines of the detected tags and their payload values
+      if (draw_tag_detections_image_ && tag_detections_image_publisher_.getNumSubscribers() > 0) //CUSTOMIZATION
+      {
+        tag_detector_->drawDetections(cv_image_);
+        tag_detections_image_publisher_.publish(cv_image_->toImageMsg());
+      }
     }
   }
-  else
+  else if (tag_detector_->initTransform_)
     tag_detector_->tfRepublish(image->header.stamp);
 }
 
 //CUSTOMIZATION
+bool ContinuousDetector::tfStartDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/)
+{
+  ROS_WARN_ONCE("AprilTag2 Detection Started, live tf published");
+  aprilDetectorOn_ = true;
+}
 bool ContinuousDetector::tfStopDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/)
 {
   ROS_WARN_ONCE("AprilTag2 Detection STOPPED, only stored tf will be published from now onwards");
   aprilDetectorOn_ = false;
-}
-
-bool ContinuousDetector::tfRestartDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/)
-{
-  ROS_WARN_ONCE("AprilTag2 Detection RESTARTED, live tf published");
-  aprilDetectorOn_ = true;
 }
 //CUSTOMIZATION
 

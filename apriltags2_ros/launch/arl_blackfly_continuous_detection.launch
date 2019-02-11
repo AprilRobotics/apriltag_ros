@@ -13,9 +13,9 @@
   <arg name="target_frame_post" default="DARPA_POST"/>
 
   <!-- Set parameters -->
-  <rosparam command="load" file="$(find apriltags2_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
-  <rosparam command="load" file="$(find apriltags2_ros)/config/tags.yaml" ns="$(arg node_namespace)" />
-  
+  <rosparam command="load" file="$(find apriltags2_ros)/config/darpa_settings.yaml" ns="$(arg node_namespace)"/>
+  <rosparam command="load" file="$(find apriltags2_ros)/config/darpa_tags.yaml" ns="$(arg node_namespace)"/>
+    
   <!-- Static Transforms -->  
   <!-- tf: Body to Camera/BlackFly Frame, T_BodyCamera -->
   <node pkg="tf" type="static_transform_publisher" name="cam2body_tf" args="0 0 0 -1.5708 0 -1.5708 body $(arg camera_frame) 100" />
