@@ -47,40 +47,41 @@
 
 #include <memory>
 
-#include <nodelet/nodelet.h>
+//#include <nodelet/nodelet.h>
 
 #include <std_srvs/Empty.h>
 
 namespace apriltags2_ros
 {
 
-class ContinuousDetector: public nodelet::Nodelet
+class ContinuousDetector//: public nodelet::Nodelet
 {
  public:
    ContinuousDetector();
-  void onInit();
+   ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pnh_);
+   //void onInit();
 
-  void imageCallback(const sensor_msgs::ImageConstPtr& image_rect,
-                     const sensor_msgs::CameraInfoConstPtr& camera_info);
+   void imageCallback(const sensor_msgs::ImageConstPtr &image_rect,
+                      const sensor_msgs::CameraInfoConstPtr &camera_info);
 
-  bool tfStopDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/);        //CUSTOMIZATION
-  bool tfRestartDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/); //CUSTOMIZATION
+   bool tfStopDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/);    //CUSTOMIZATION
+   bool tfRestartDetectorCallback(std_srvs::Empty::Request & /*request*/, std_srvs::Empty::Response & /*response*/); //CUSTOMIZATION
 
-private:
-  std::shared_ptr<TagDetector> tag_detector_;
-  bool draw_tag_detections_image_;
-  cv_bridge::CvImagePtr cv_image_;
+ private:
+   std::shared_ptr<TagDetector> tag_detector_;
+   bool draw_tag_detections_image_;
+   cv_bridge::CvImagePtr cv_image_;
 
-  std::shared_ptr<image_transport::ImageTransport> it_;
-  image_transport::CameraSubscriber camera_image_subscriber_;
-  image_transport::Publisher tag_detections_image_publisher_;
-  ros::Publisher tag_detections_publisher_;
+   std::shared_ptr<image_transport::ImageTransport> it_;
+   image_transport::CameraSubscriber camera_image_subscriber_;
+   image_transport::Publisher tag_detections_image_publisher_;
+   ros::Publisher tag_detections_publisher_;
 
-  //CUSTOMIZATION
-  bool aprilDetectorOn_;
-  ros::ServiceServer tfStopDetectorSrv_;
-  ros::ServiceServer tfRestartDetectorSrv_;
-  //CUSTOMIZATION
+   //CUSTOMIZATION
+   bool aprilDetectorOn_;
+   ros::ServiceServer tfStopDetectorSrv_;
+   ros::ServiceServer tfRestartDetectorSrv_;
+   //CUSTOMIZATION
 };
 
 } // namespace apriltags2_ros

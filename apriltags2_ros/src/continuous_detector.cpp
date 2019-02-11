@@ -31,9 +31,9 @@
 
 #include "apriltags2_ros/continuous_detector.h"
 
-#include <pluginlib/class_list_macros.h>
+//#include <pluginlib/class_list_macros.h>
 
-PLUGINLIB_EXPORT_CLASS(apriltags2_ros::ContinuousDetector, nodelet::Nodelet);
+//PLUGINLIB_EXPORT_CLASS(apriltags2_ros::ContinuousDetector, nodelet::Nodelet);
 
 namespace apriltags2_ros
 {
@@ -42,7 +42,34 @@ ContinuousDetector::ContinuousDetector()
 {
 }
 
-void ContinuousDetector::onInit()
+ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pnh_)
+{
+  //Get Node Handles
+  ros::NodeHandle &nh = nh_;
+  ros::NodeHandle &pnh = pnh_;
+
+  //Param
+  draw_tag_detections_image_ = getAprilTagOption<bool>(pnh, "publish_tag_detections_image", false);
+
+  //Create Tag detector
+  tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
+
+  //Subscriber and Publishers
+  it_ = std::shared_ptr<image_transport::ImageTransport>(new image_transport::ImageTransport(nh));
+  camera_image_subscriber_ = it_->subscribeCamera("image", 1, &ContinuousDetector::imageCallback, this);
+  tag_detections_publisher_ = nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
+  if (draw_tag_detections_image_)
+  {
+    tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
+  }
+
+  //Service
+  aprilDetectorOn_ = true;
+  tfStopDetectorSrv_ = nh.advertiseService("/aprilTag_stopDetector", &ContinuousDetector::tfStopDetectorCallback, this);
+  tfRestartDetectorSrv_ = nh.advertiseService("/aprilTag_startDetector", &ContinuousDetector::tfRestartDetectorCallback, this);
+}
+
+/*void ContinuousDetector::onInit()
 {
   //Get Node Handles
   ros::NodeHandle &nh = getNodeHandle();
@@ -67,7 +94,7 @@ void ContinuousDetector::onInit()
   aprilDetectorOn_ = true;
   tfStopDetectorSrv_ = nh.advertiseService("/aprilTag_stopDetector", &ContinuousDetector::tfStopDetectorCallback, this);
   tfRestartDetectorSrv_ = nh.advertiseService("/aprilTag_startDetector", &ContinuousDetector::tfRestartDetectorCallback, this);
-}
+}*/
 
 void ContinuousDetector::imageCallback(const sensor_msgs::ImageConstPtr &image, const sensor_msgs::CameraInfoConstPtr &camera_info)
 {

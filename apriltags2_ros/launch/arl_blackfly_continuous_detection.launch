@@ -1,7 +1,7 @@
 <launch>
 
   <!-- playback for rosbag for correct tf display in rviz -->
-  <param name ="/use_sim_time" value="true"/>
+  <param name ="/use_sim_time" value="false"/>
 
   <arg name="launch_prefix" default="" /> <!-- set to value="gdbserver localhost:10000" for remote debugging -->
   <arg name="node_namespace" default="apriltags2_ros_continuous_node" />
@@ -18,14 +18,14 @@
   
   <!-- Static Transforms -->  
   <!-- tf: Body to Camera/BlackFly Frame, T_BodyCamera -->
-  <node pkg="tf" type="static_transform_publisher" name="body_tf" args="0 0 0 -1.5708 0 -1.5708 body $(arg camera_frame) 100" />
+  <node pkg="tf" type="static_transform_publisher" name="cam2body_tf" args="0 0 0 -1.5708 0 -1.5708 body $(arg camera_frame) 100" />
   <!-- tf: Tag to DARPA Frame, T_TagDARPA -->
-  <node pkg="tf" type="static_transform_publisher" name="darpa_tf" args="1 0 0 0 0 0 tag_6 $(arg target_frame_live) 100" />
+  <node pkg="tf" type="static_transform_publisher" name="tag2darpa_tf" args="1 0 0 0 0 0 tag_6 $(arg target_frame_live) 100" />
   
-
-  <node pkg="apriltags2_ros" type="apriltags2_ros_continuous_node" name="$(arg node_namespace)" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" >
+  <node pkg="apriltags2_ros" type="apriltags2_ros_continuous_node" name="apriltags2_ros_continuous_node" clear_params="true" output="screen" >
+  
     <!-- Remap topics from those used in code to those on the ROS network -->
-    <remap from="image" to="/camera/image_raw"/>
+    <remap from="image" to="/camera/image_color_dropped"/> #/camera/image_color
     <remap from="camera_info" to="/camera/camera_info" />
     
     <!-- Undistortion and Model -->

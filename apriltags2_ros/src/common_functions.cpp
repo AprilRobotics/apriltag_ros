@@ -676,7 +676,7 @@ std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags(XmlRpc:
     }
 
     StandaloneTagDescription description(id, size, frame_name);
-    ROS_INFO_STREAM("Loaded tag config: " << id << ", size: " << size << ", frame_name: " << frame_name.c_str());
+    ROS_WARN_STREAM("Loaded tag config: " << id << ", size: " << size << ", frame_name: " << frame_name.c_str());
     // Add this tag's description to map of descriptions
     descriptions.insert(std::make_pair(id, description));
   }
