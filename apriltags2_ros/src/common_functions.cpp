@@ -395,39 +395,41 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
   }
 
   // If set, publish the transform /tf topic
-  if (publish_tf_)
-  {
-    for (unsigned int i = 0; i < tag_detection_array.detections.size(); i++)
-    {
+  if (publish_tf_) {
+    for (unsigned int i = 0; i < tag_detection_array.detections.size(); i++) {
       geometry_msgs::PoseStamped pose;
       pose.pose = tag_detection_array.detections[i].pose.pose.pose;
       pose.header = tag_detection_array.detections[i].pose.header;
       tf::Stamped<tf::Transform> tag_transform;
       tf::poseStampedMsgToTF(pose, tag_transform);
-      tf_boradcaster_.sendTransform(tf::StampedTransform(tag_transform,
-                                                         tag_transform.stamp_,
-                                                         camera_frame_,
-                                                         detection_names[i]));
+      tf_boradcaster_.sendTransform(
+          tf::StampedTransform(tag_transform, tag_transform.stamp_,
+                               camera_frame_, detection_names[i]));
     }
 
-    //To avoid tf lookup if no tag is detected
-    if (tag_detection_array.detections.size() > 0)
-    {
-      try
-      {
-        tf_listener_.waitForTransform(world_frame_, target_frame_live_, ros::Time(0), ros::Duration(0.1)); //blocking call for 0.1sec
-        tf_listener_.lookupTransform(world_frame_, target_frame_live_, ros::Time(0), T_worldDARPA_);
-      }
-      catch (tf::TransformException &ex)
-      {
+    // To avoid tf lookup if no tag is detected
+
+    if (tag_detection_array.detections.size() > 0) {
+      try {
+        // blocking call for 0.1sec
+        //if (!tf_listener_.waitForTransform(world_frame_, target_frame_live_,
+       //                                    ros::Time::now(),
+       //                                    ros::Duration(0.1))) {
+       //   ROS_ERROR("Couldn't get transform!");
+        //}
+        tf_listener_.lookupTransform(world_frame_, target_frame_live_,
+                                     ros::Time(0.0), T_worldDARPA_);
+      } catch (tf::TransformException &ex) {
         ROS_ERROR("%s", ex.what());
       }
-      tf_boradcaster_.sendTransform(T_worldDARPA_);
-      initTransform_ = true;
-    }
-    else if (initTransform_)
       tfRepublish(ros::Time::now());
+      //tf_boradcaster_.sendTransform(T_worldDARPA_);
+      initTransform_ = true;
+    } else if (initTransform_) {
+      tfRepublish(ros::Time::now());
+    }
   }
+
   return tag_detection_array;
 }
 

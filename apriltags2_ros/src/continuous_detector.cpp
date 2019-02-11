@@ -53,6 +53,7 @@ ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pn
   image_mod_value_ = 5; //Default value of 4Hz
   pnh.getParam("image_mod_value", image_mod_value_);
 
+
   //Create Tag detector
   tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
 
@@ -69,6 +70,13 @@ ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pn
   aprilDetectorOn_ = false;
   tfStartDetectorSrv_ = nh.advertiseService("/aprilTag_startDetector", &ContinuousDetector::tfStartDetectorCallback, this);
   tfStopDetectorSrv_ = nh.advertiseService("/aprilTag_stopDetector", &ContinuousDetector::tfStopDetectorCallback, this);
+
+  bool use_service_calls = true;
+  pnh.getParam("use_service_calls", use_service_calls);
+  ROS_INFO("Use service calls: %d", use_service_calls);
+  if (!use_service_calls) {
+    aprilDetectorOn_ = true;
+  }
 }
 
 /*Quick Un-nodeletize
@@ -128,8 +136,9 @@ void ContinuousDetector::imageCallback(const sensor_msgs::ImageConstPtr &image, 
       }
     }
   }
-  else if (tag_detector_->initTransform_)
+  else if (tag_detector_->initTransform_) {
     tag_detector_->tfRepublish(image->header.stamp);
+  }
 }
 
 //CUSTOMIZATION
