@@ -26,6 +26,7 @@
 
   <node pkg="apriltags2_ros" type="apriltags2_ros_continuous_node" name="$(arg node_namespace)" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" >
     <!-- Remap topics from those used in code to those on the ROS network --> 
+    <param name="image_mod_value" type="int" value="4" />
     <remap from="image" to="/ptgrey_node/cam0/image_raw"/>
     <remap from="camera_info" to="/ptgrey_node/cam0/camera_info" />
 

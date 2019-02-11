@@ -25,7 +25,8 @@
   <node pkg="apriltags2_ros" type="apriltags2_ros_continuous_node" name="apriltags2_ros_continuous_node" clear_params="true" output="screen" >
   
     <!-- Remap topics from those used in code to those on the ROS network -->
-    <remap from="image" to="/camera/image_color_dropped"/> #/camera/image_color
+    <param name="image_mod_value" type="int" value="4" />
+    <remap from="image" to="/camera/image_color"/>
     <remap from="camera_info" to="/camera/camera_info" />
     
     <!-- Undistortion and Model -->

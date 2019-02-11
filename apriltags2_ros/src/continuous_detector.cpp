@@ -50,6 +50,7 @@ ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pn
 
   //Param
   draw_tag_detections_image_ = getAprilTagOption<bool>(pnh, "publish_tag_detections_image", false);
+  image_mod_value_ = 5; //Default value of 4Hz
   pnh.getParam("image_mod_value", image_mod_value_);
 
   //Create Tag detector
@@ -70,7 +71,8 @@ ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pn
   tfStopDetectorSrv_ = nh.advertiseService("/aprilTag_stopDetector", &ContinuousDetector::tfStopDetectorCallback, this);
 }
 
-/*void ContinuousDetector::onInit()
+/*Quick Un-nodeletize
+void ContinuousDetector::onInit()
 {
   //Get Node Handles
   ros::NodeHandle &nh = getNodeHandle();
