@@ -198,7 +198,7 @@ class TagDetector
     void undistortRectifyImage(const cv::Mat &original_img, cv::Mat &rectified_img);
     void setRadtanUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_param);
     void setEquidistantUndistortRectifyMap(sensor_msgs::CameraInfo ros_cam_param);
-    tf::StampedTransform T_worldDARPA_;
+    tf::StampedTransform T_target_world_;
     std::string world_frame_;
     std::string target_frame_live_;
     std::string target_frame_post_;

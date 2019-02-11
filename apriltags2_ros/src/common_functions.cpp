@@ -408,22 +408,21 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
     }
 
     // To avoid tf lookup if no tag is detected
-
     if (tag_detection_array.detections.size() > 0) {
+      bool should_publish = false;
       try {
-        // blocking call for 0.1sec
-        //if (!tf_listener_.waitForTransform(world_frame_, target_frame_live_,
-       //                                    ros::Time::now(),
-       //                                    ros::Duration(0.1))) {
-       //   ROS_ERROR("Couldn't get transform!");
-        //}
-        tf_listener_.lookupTransform(world_frame_, target_frame_live_,
-                                     ros::Time(0.0), T_worldDARPA_);
+        if (tf_listener_.canTransform(target_frame_live_, world_frame_,
+                                      ros::Time(0.0))) {
+          tf_listener_.lookupTransform(target_frame_live_, world_frame_,
+                                       ros::Time(0.0), T_target_world_);
+          should_publish = true;
+        }
       } catch (tf::TransformException &ex) {
         ROS_ERROR("%s", ex.what());
       }
-      tfRepublish(ros::Time::now());
-      //tf_boradcaster_.sendTransform(T_worldDARPA_);
+      if (should_publish) {
+        tfRepublish(ros::Time::now());
+      }
       initTransform_ = true;
     } else if (initTransform_) {
       tfRepublish(ros::Time::now());
@@ -436,10 +435,10 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
 //Updates tf timestamp and republishes it
 void TagDetector::tfRepublish(const ros::Time &current_stamp)
 {
-  T_worldDARPA_.stamp_ = current_stamp;
-  T_worldDARPA_.frame_id_ = world_frame_;
-  T_worldDARPA_.child_frame_id_ = target_frame_post_;
-  tf_boradcaster_.sendTransform(T_worldDARPA_);
+  T_target_world_.stamp_ = current_stamp;
+  T_target_world_.frame_id_ = target_frame_post_;
+  T_target_world_.child_frame_id_ = world_frame_;
+  tf_boradcaster_.sendTransform(T_target_world_);
 }
 
 int TagDetector::idComparison(const void *first, const void *second)
