@@ -40,6 +40,7 @@
     <param name="target_frame_post" type="str" value="$(arg target_frame_post)" />
     <param name="publish_tf" type="bool" value="true" />      
 
+    <param name="use_service_calls_" type="bool" value="true" /> #use service calls for starting/stopping detection
     <param name="remove_duplicates" type="bool" value="true" />
     <param name="publish_tag_detections_image" type="bool" value="true" />      <!-- default: false -->
   </node>

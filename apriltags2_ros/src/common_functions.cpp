@@ -395,8 +395,10 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
   }
 
   // If set, publish the transform /tf topic
-  if (publish_tf_) {
-    for (unsigned int i = 0; i < tag_detection_array.detections.size(); i++) {
+  if (publish_tf_)
+  {
+    for (unsigned int i = 0; i < tag_detection_array.detections.size(); i++)
+    {
       geometry_msgs::PoseStamped pose;
       pose.pose = tag_detection_array.detections[i].pose.pose.pose;
       pose.header = tag_detection_array.detections[i].pose.header;
@@ -408,27 +410,26 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
     }
 
     // To avoid tf lookup if no tag is detected
-    if (tag_detection_array.detections.size() > 0) {
-      bool should_publish = false;
-      try {
+    if (tag_detection_array.detections.size() > 0)
+    {
+      try
+      {
         if (tf_listener_.canTransform(target_frame_live_, world_frame_,
-                                      ros::Time(0.0))) {
+                                      ros::Time(0.0)))
+        {
           tf_listener_.lookupTransform(target_frame_live_, world_frame_,
                                        ros::Time(0.0), T_target_world_);
-          should_publish = true;
         }
-      } catch (tf::TransformException &ex) {
+      }
+      catch (tf::TransformException &ex)
+      {
         ROS_ERROR("%s", ex.what());
       }
-      if (should_publish) {
-        tfRepublish(ros::Time::now());
-      }
       initTransform_ = true;
-    } else if (initTransform_) {
+    }
+    else if (initTransform_)
       tfRepublish(ros::Time::now());
     }
-  }
-
   return tag_detection_array;
 }
 
