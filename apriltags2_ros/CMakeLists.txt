@@ -116,3 +116,16 @@ target_link_libraries(${PROJECT_NAME}_single_image_client_node
   common
   ${catkin_LIBRARIES}
 )
+
+foreach(dir launch config)
+  install(DIRECTORY ${dir}/
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/${dir}
+  )
+endforeach()
+
+install(TARGETS
+  ${PROJECT_NAME}_continuous_node
+  ${PROJECT_NAME}_single_image_server_node
+  ${PROJECT_NAME}_single_image_client_node
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
