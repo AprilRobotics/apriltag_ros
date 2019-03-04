@@ -64,7 +64,7 @@
 
 #include "apriltags2_ros/AprilTagDetection.h"
 #include "apriltags2_ros/AprilTagDetectionArray.h"
-#include "apriltags2/apriltag.h"
+#include "apriltag.h"
 
 namespace apriltags2_ros
 {
