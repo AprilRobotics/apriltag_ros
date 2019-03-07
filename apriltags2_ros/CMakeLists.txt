@@ -103,17 +103,31 @@ add_executable(${PROJECT_NAME}_single_image_client_node src/${PROJECT_NAME}_sing
 add_dependencies(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_common ${catkin_LIBRARIES})
 
+
+#############
+## Install ##
+#############
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+)
+
 install(DIRECTORY launch config
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+install(FILES nodelet_plugins.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
 install(TARGETS
+  ${PROJECT_NAME}_common
+  ${PROJECT_NAME}_continuous_detector
+  ${PROJECT_NAME}_single_image_detector
   ${PROJECT_NAME}_continuous_node
   ${PROJECT_NAME}_single_image_server_node
   ${PROJECT_NAME}_single_image_client_node
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(FILES nodelet_plugins.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
