@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.8.3)
 project(apriltags2_ros)
 
 find_package(catkin REQUIRED COMPONENTS
-  apriltags2
   geometry_msgs
   image_transport
   image_geometry
@@ -17,8 +16,13 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
 )
 
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
+
+find_package(PkgConfig)
+pkg_search_module(apriltag REQUIRED apriltag)
+include_directories(${apriltag_INCLUDE_DIRS}/apriltag)
+link_directories(${apriltag_LIBDIR})
 
 # Set the build type.  Options are:
 #  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
@@ -26,15 +30,15 @@ find_package(OpenCV REQUIRED)
 #  Release        : w/o debug symbols, w/ optimization
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Release)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_definitions (-Wall -O3)
+add_definitions(-Wall -O3)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -funsafe-loop-optimizations -fsee -funroll-loops -fno-math-errno -funsafe-math-optimizations -ffinite-math-only -fno-signed-zeros ")
 
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64 OR x86_32)
-  message("enabling msse2 for x86_64 or x86_32 architecture")
+  #message("enabling msse2 for x86_64 or x86_32 architecture")
   #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -msse2 ")
 endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64 OR x86_32)
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm)
@@ -62,8 +66,8 @@ generate_messages(
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS apriltags2 geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf nodelet pluginlib
-  DEPENDS Eigen OpenCV
+  CATKIN_DEPENDS geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf nodelet pluginlib
+  DEPENDS OpenCV apriltag
 )
 
 ###########
@@ -72,7 +76,7 @@ catkin_package(
 
 include_directories(include
   ${catkin_INCLUDE_DIRS}
-  ${Eigen_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
@@ -80,8 +84,8 @@ add_library(common src/common_functions.cpp)
 add_dependencies(common ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(common
   ${catkin_LIBRARIES}
-  ${Eigen_LIBRARIES}
   ${OpenCV_LIBRARIES}
+  ${apriltag_LIBRARIES}
 )
 
 add_library(continuous_detector src/continuous_detector.cpp)

@@ -62,9 +62,10 @@
 #include <sensor_msgs/image_encodings.h>
 #include <tf/transform_broadcaster.h>
 
+#include "apriltag.h"
+
 #include "apriltags2_ros/AprilTagDetection.h"
 #include "apriltags2_ros/AprilTagDetectionArray.h"
-#include "apriltag.h"
 
 namespace apriltags2_ros
 {
@@ -162,13 +163,10 @@ class TagDetector
 
   // AprilTags 2 code's attributes
   std::string family_;
-  int border_;
   int threads_;
   double decimate_;
   double blur_;
   int refine_edges_;
-  int refine_decode_;
-  int refine_pose_;
   int debug_;
 
   // AprilTags 2 objects

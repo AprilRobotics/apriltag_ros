@@ -1,0 +1,3 @@
+[submodule "apriltag2"]
+	path = apriltag2
+	url = https://github.com/christianrauch/apriltag2.git

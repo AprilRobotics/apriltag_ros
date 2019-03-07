@@ -34,9 +34,7 @@
 
 #include "common/homography.h"
 #include "tag36h11.h"
-#include "tag36h10.h"
 #include "tag25h9.h"
-#include "tag25h7.h"
 #include "tag16h5.h"
 
 namespace apriltags2_ros
@@ -44,13 +42,10 @@ namespace apriltags2_ros
 
 TagDetector::TagDetector(ros::NodeHandle pnh) :
     family_(getAprilTagOption<std::string>(pnh, "tag_family", "tag36h11")),
-    border_(getAprilTagOption<int>(pnh, "tag_border", 1)),
     threads_(getAprilTagOption<int>(pnh, "tag_threads", 4)),
     decimate_(getAprilTagOption<double>(pnh, "tag_decimate", 1.0)),
     blur_(getAprilTagOption<double>(pnh, "tag_blur", 0.0)),
     refine_edges_(getAprilTagOption<int>(pnh, "tag_refine_edges", 1)),
-    refine_decode_(getAprilTagOption<int>(pnh, "tag_refine_decode", 0)),
-    refine_pose_(getAprilTagOption<int>(pnh, "tag_refine_pose", 0)),
     debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
     publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false))
 {
@@ -110,17 +105,9 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   {
     tf_ = tag36h11_create();
   }
-  else if (family_ == "tag36h10")
-  {
-    tf_ = tag36h10_create();
-  }
   else if (family_ == "tag25h9")
   {
     tf_ = tag25h9_create();
-  }
-  else if (family_ == "tag25h7")
-  {
-    tf_ = tag25h7_create();
   }
   else if (family_ == "tag16h5")
   {
@@ -131,7 +118,6 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     ROS_WARN("Invalid tag family specified! Aborting");
     exit(1);
   }
-  tf_->black_border = (uint32_t)border_;
 
   // Create the AprilTags 2 detector
   td_ = apriltag_detector_create();
@@ -141,8 +127,6 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   td_->nthreads = threads_;
   td_->debug = debug_;
   td_->refine_edges = refine_edges_;
-  td_->refine_decode = refine_decode_;
-  td_->refine_pose = refine_pose_;
 
   detections_ = NULL;
 
@@ -167,17 +151,9 @@ TagDetector::~TagDetector() {
   {
     tag36h11_destroy(tf_);
   }
-  else if (family_ == "tag36h10")
-  {
-    tag36h10_destroy(tf_);
-  }
   else if (family_ == "tag25h9")
   {
     tag25h9_destroy(tf_);
-  }
-  else if (family_ == "tag25h7")
-  {
-    tag25h7_destroy(tf_);
   }
   else if (family_ == "tag16h5")
   {
