@@ -34,7 +34,7 @@ link_directories(${apriltag_LIBDIR})
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_definitions(-Wall -O3)
+# add_definitions(-Wall -O3)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -funsafe-loop-optimizations -fsee -funroll-loops -fno-math-errno -funsafe-math-optimizations -ffinite-math-only -fno-signed-zeros ")
 
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64 OR x86_32)
@@ -68,6 +68,7 @@ catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf nodelet pluginlib
   DEPENDS OpenCV apriltag
+  LIBRARIES ${PROJECT_NAME}_common ${PROJECT_NAME}_continuous_detector ${PROJECT_NAME}_single_image_detector
 )
 
 ###########
@@ -80,46 +81,27 @@ include_directories(include
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_library(common src/common_functions.cpp)
-add_dependencies(common ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(common
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  ${apriltag_LIBRARIES}
-)
+add_library(${PROJECT_NAME}_common src/common_functions.cpp)
+add_dependencies(${PROJECT_NAME}_common ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME}_common ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${apriltag_LIBRARIES})
 
-add_library(continuous_detector src/continuous_detector.cpp)
-target_link_libraries(continuous_detector
-  common
-  ${catkin_LIBRARIES}
-)
+add_library(${PROJECT_NAME}_continuous_detector src/continuous_detector.cpp)
+target_link_libraries(${PROJECT_NAME}_continuous_detector ${PROJECT_NAME}_common ${catkin_LIBRARIES})
 
-add_library(single_image_detector src/single_image_detector.cpp)
-target_link_libraries(single_image_detector
-  common
-  ${catkin_LIBRARIES}
-)
+add_library(${PROJECT_NAME}_single_image_detector src/single_image_detector.cpp)
+target_link_libraries(${PROJECT_NAME}_single_image_detector ${PROJECT_NAME}_common ${catkin_LIBRARIES})
 
 add_executable(${PROJECT_NAME}_continuous_node src/${PROJECT_NAME}_continuous_node.cpp)
 add_dependencies(${PROJECT_NAME}_continuous_node ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_continuous_node
-  continuous_detector
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_continuous_node ${PROJECT_NAME}_continuous_detector ${catkin_LIBRARIES})
 
 add_executable(${PROJECT_NAME}_single_image_server_node src/${PROJECT_NAME}_single_image_server_node.cpp)
 add_dependencies(${PROJECT_NAME}_single_image_server_node ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_single_image_server_node
-  single_image_detector
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_single_image_server_node ${PROJECT_NAME}_single_image_detector ${catkin_LIBRARIES})
 
 add_executable(${PROJECT_NAME}_single_image_client_node src/${PROJECT_NAME}_single_image_client_node.cpp)
 add_dependencies(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_single_image_client_node
-  common
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_common ${catkin_LIBRARIES})
 
 install(DIRECTORY launch config
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}

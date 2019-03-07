@@ -1,4 +1,4 @@
-<library path="lib/libcontinuous_detector">
+<library path="lib/libapriltags2_ros_continuous_detector">
     <class name="apriltags2_ros/ContinuousDetector"
         type="apriltags2_ros::ContinuousDetector"
 		base_class_type="nodelet::Nodelet">
