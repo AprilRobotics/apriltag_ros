@@ -1,7 +1,7 @@
 <launch>
 
   <!-- playback for rosbag for correct tf display in rviz -->
-  <param name ="/use_sim_time" value="false"/>
+  <param name ="/use_sim_time" value="true"/>
 
   <arg name="launch_prefix" default="" /> <!-- set to value="gdbserver localhost:10000" for remote debugging -->
   <arg name="node_namespace" default="apriltags2_ros_continuous_node" />
@@ -26,7 +26,7 @@
   
     <!-- Remap topics from those used in code to those on the ROS network -->
     <param name="image_mod_value" type="int" value="4" />
-    <remap from="image" to="/camera/image_color"/>
+    <remap from="image" to="/camera/image_raw"/>
     <remap from="camera_info" to="/camera/camera_info" />
     
     <!-- Undistortion and Model -->
