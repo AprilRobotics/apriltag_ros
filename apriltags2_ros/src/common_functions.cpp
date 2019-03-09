@@ -53,6 +53,27 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(getAprilTagOption<std::s
                                                 debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
                                                 publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", true))
 {
+  //CUTOMIZATION
+  isUndistortionMapInitialized_ = false;
+  undistortInputImage_ = false;
+  pnh.getParam("undistortInputImage", undistortInputImage_);
+  pnh.getParam("cameraDistortionModel", cameraDistortionModel_);
+  initTransform_ = false;
+  world_frame_ = "world";
+  target_frame_live_ = "target_live";
+  target_frame_post_ = "target_post";
+  pnh.getParam("world_frame", world_frame_);
+  pnh.getParam("target_frame_live", target_frame_live_);
+  pnh.getParam("target_frame_post", target_frame_post_);
+  //CUSTOMIZATION
+
+  // Get tf frame name to use for the camera
+  if (!pnh.getParam("camera_frame", camera_frame_))
+  {
+    ROS_WARN_STREAM("Camera frame not specified, using 'camera'");
+    camera_frame_ = "camera";
+  }
+
   // Parse standalone tag descriptions specified by user (stored on ROS
   // parameter server)
   XmlRpc::XmlRpcValue standalone_tag_descriptions;
@@ -141,27 +162,6 @@ TagDetector::TagDetector(ros::NodeHandle pnh) : family_(getAprilTagOption<std::s
   td_->refine_pose = refine_pose_;
 
   detections_ = NULL;
-
-  // Get tf frame name to use for the camera
-  if (!pnh.getParam("camera_frame", camera_frame_))
-  {
-    ROS_WARN_STREAM("Camera frame not specified, using 'camera'");
-    camera_frame_ = "camera";
-  }
-
-  //CUTOMIZATION
-  isUndistortionMapInitialized_ = false;
-  undistortInputImage_ = false;
-  pnh.getParam("undistortInputImage", undistortInputImage_);
-  pnh.getParam("cameraDistortionModel", cameraDistortionModel_);
-  initTransform_ = false;
-  world_frame_ = "world";
-  target_frame_live_ = "target_live";
-  target_frame_post_ = "target_post";
-  pnh.getParam("world_frame", world_frame_);
-  pnh.getParam("target_frame_live", target_frame_live_);
-  pnh.getParam("target_frame_post", target_frame_post_);
-  //CUSTOMIZATION
 }
 
 // destructor
@@ -196,8 +196,7 @@ TagDetector::~TagDetector()
   }
 }
 
-AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &image,
-                                               const sensor_msgs::CameraInfoConstPtr &camera_info)
+AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &image, const sensor_msgs::CameraInfoConstPtr &camera_info)
 {
   // Convert image to Grayscale
   cv::Mat gray_image;
@@ -366,9 +365,7 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
     // Get bundle name
     std::string bundleName = tag_bundle_descriptions_[j].name();
 
-    std::map<std::string,
-             std::vector<cv::Point3d>>::iterator it =
-        bundleObjectPoints.find(bundleName);
+    std::map<std::string, std::vector<cv::Point3d>>::iterator it = bundleObjectPoints.find(bundleName);
     if (it != bundleObjectPoints.end())
     {
       // Some member tags of this bundle were detected, get the bundle's
@@ -429,7 +426,7 @@ AprilTagDetectionArray TagDetector::detectTags(const cv_bridge::CvImagePtr &imag
     }
     else if (initTransform_)
       tfRepublish(ros::Time::now());
-    }
+  }
   return tag_detection_array;
 }
 
@@ -700,10 +697,16 @@ std::vector<TagBundleDescription> TagDetector::parseTagBundles(XmlRpc::XmlRpcVal
     XmlRpc::XmlRpcValue &bundle_description = tag_bundles[i];
 
     std::string bundleName;
+
+    //CUSTOMIZATION
+    //Assign bundle name of target_frame_live_ for detection instead of using name from tags.yaml
+    bundleName = target_frame_live_;
+    //CUSTOMIZATION
+
+    /* //Get bundle name from tags.yaml 
     if (bundle_description.hasMember("name"))
     {
-      ROS_ASSERT(bundle_description["name"].getType() ==
-                 XmlRpc::XmlRpcValue::TypeString);
+      ROS_ASSERT(bundle_description["name"].getType() == XmlRpc::XmlRpcValue::TypeString);
       bundleName = (std::string)bundle_description["name"];
     }
     else
@@ -712,6 +715,8 @@ std::vector<TagBundleDescription> TagDetector::parseTagBundles(XmlRpc::XmlRpcVal
       bundle_name_stream << "bundle_" << i;
       bundleName = bundle_name_stream.str();
     }
+    */
+
     TagBundleDescription bundle_i(bundleName);
     ROS_INFO("Loading tag bundle '%s'", bundle_i.name().c_str());
 

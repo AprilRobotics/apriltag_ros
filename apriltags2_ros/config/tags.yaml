@@ -19,7 +19,10 @@
 #   ]
 standalone_tags:
   [
-    {id: 6, size: 0.168}
+    #{id: 6, size: 0.168},
+    # {id: 1, size: 0.168},
+    # {id: 13, size: 0.168},
+    # {id: 25, size: 0.168}
   ]
 # ## Tag bundle definitions
 # ### Remarks
@@ -44,4 +47,16 @@ standalone_tags:
 #   ]
 tag_bundles:
   [
+     {
+       #name: 'DARPA' #This will be assigned same name as target_frame_live from launch file
+       layout:
+         [
+          #  {id: 1, size: 0.168, x: 0.002, y: 0.042, z: 0.329, qw: -0.499, qx: -0.495, qy: 0.494, qz: 0.512},
+          #  {id: 13, size: 0.168, x: 0.003, y: -0.298, z: -0.001, qw: 0.506, qx: 0.530, qy: -0.489, qz: -0.474},
+          #  {id: 25, size: 0.168, x: 0.001, y: 0.333, z: 0.001, qw: -0.494, qx: -0.491, qy: 0.502, qz: 0.513}
+           {id: 1, size: 0.168, x: 0.002, y: 0.042, z: 0.329, qw: -0.5, qx: -0.5, qy: 0.5, qz: 0.5},
+           {id: 13, size: 0.168, x: 0.003, y: -0.298, z: -0.001, qw: -0.5, qx: -0.5, qy: 0.5, qz: 0.5},
+           {id: 25, size: 0.168, x: 0.001, y: 0.333, z: 0.001, qw: -0.5, qx: -0.5, qy: 0.5, qz: 0.5}
+         ]
+     }
   ]

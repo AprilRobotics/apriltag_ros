@@ -50,9 +50,8 @@ ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pn
 
   //Param
   draw_tag_detections_image_ = getAprilTagOption<bool>(pnh, "publish_tag_detections_image", false);
-  image_mod_value_ = 5; //Default value of 4Hz
+  image_mod_value_ = 1; //Default value of 4Hz
   pnh.getParam("image_mod_value", image_mod_value_);
-
 
   //Create Tag detector
   tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
@@ -71,12 +70,11 @@ ContinuousDetector::ContinuousDetector(ros::NodeHandle &nh_, ros::NodeHandle &pn
   tfStartDetectorSrv_ = nh.advertiseService("/aprilTag_startDetector", &ContinuousDetector::tfStartDetectorCallback, this);
   tfStopDetectorSrv_ = nh.advertiseService("/aprilTag_stopDetector", &ContinuousDetector::tfStopDetectorCallback, this);
 
-  bool use_service_calls = true;
-  pnh.getParam("use_service_calls", use_service_calls);
-  ROS_INFO("Use service calls: %d", use_service_calls);
-  if (!use_service_calls) {
+  use_service_calls_ = true;
+  pnh.getParam("use_service_calls", use_service_calls_);
+  ROS_INFO("Use service calls: %d", use_service_calls_);
+  if (!use_service_calls_)
     aprilDetectorOn_ = true;
-  }
 }
 
 /*Quick Un-nodeletize
@@ -136,7 +134,8 @@ void ContinuousDetector::imageCallback(const sensor_msgs::ImageConstPtr &image, 
       }
     }
   }
-  else if (tag_detector_->initTransform_) {
+  else if (tag_detector_->initTransform_)
+  {
     tag_detector_->tfRepublish(image->header.stamp);
   }
 }

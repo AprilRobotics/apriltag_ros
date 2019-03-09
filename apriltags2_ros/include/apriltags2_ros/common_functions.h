@@ -85,7 +85,7 @@ struct TagBundleMember
 {
     int id;           // Payload ID
     double size;      // [m] Side length
-    cv::Matx44d T_oi; // Rigid transform from tag i frame to bundle origin frame
+    cv::Matx44d T_oi; // Rigid transform from tag i frame to bundle origin frame //smk:Bundle Origin can be origin of DARPA Frame
 };
 
 class StandaloneTagDescription
@@ -108,7 +108,7 @@ class StandaloneTagDescription
 class TagBundleDescription
 {
   public:
-    std::map<int, int> id2idx_; // (id2idx_[<tag ID>]=<index in tags_>) mapping
+    std::map<int, int> id2idx_; // (id2idx_[<tag ID>]=<index in tags_>) mapping //smk:maps tag ID to index of tags_ vector, enables us to find tags by using their IDs
 
     TagBundleDescription(std::string name) : name_(name) {}
 
@@ -119,10 +119,12 @@ class TagBundleDescription
         member.size = size;
         member.T_oi = T_oi;
         tags_.push_back(member);
-        id2idx_[id] = tags_.size() - 1;
+        id2idx_[id] = tags_.size() - 1; //Associate tags_ vector index with tag ID for easier lookup
     }
 
+    // Get bundle name
     std::string name() const { return name_; }
+
     // Get IDs of bundle member tags
     std::vector<int> bundleIds()
     {
@@ -133,6 +135,7 @@ class TagBundleDescription
         }
         return ids;
     }
+
     // Get sizes of bundle member tags
     std::vector<double> bundleSizes()
     {
@@ -143,6 +146,7 @@ class TagBundleDescription
         }
         return sizes;
     }
+    
     int memberID(int tagID) { return tags_[id2idx_[tagID]].id; }
     double memberSize(int tagID) { return tags_[id2idx_[tagID]].size; }
     cv::Matx44d memberT_oi(int tagID) { return tags_[id2idx_[tagID]].T_oi; }

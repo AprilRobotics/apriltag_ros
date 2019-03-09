@@ -81,7 +81,8 @@ class ContinuousDetector//: public nodelet::Nodelet
    bool aprilDetectorOn_;
    ros::ServiceServer tfStartDetectorSrv_;
    ros::ServiceServer tfStopDetectorSrv_;
-   int image_mod_value_;
+   int image_mod_value_;    //controls frame rate of detection
+   bool use_service_calls_; //used to enable or disable dervice calls. Good for testing and enabling continous detection from the beginning
    //CUSTOMIZATION
 };
 
