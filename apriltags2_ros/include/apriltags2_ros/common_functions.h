@@ -72,8 +72,7 @@ namespace apriltags2_ros
 {
 
 template <typename T>
-T getAprilTagOption(ros::NodeHandle &pnh,
-                    const std::string &param_name, const T &default_val)
+T getAprilTagOption(ros::NodeHandle &pnh, const std::string &param_name, const T &default_val)
 {
     T param_val;
     pnh.param<T>(param_name, param_val, default_val);
@@ -146,7 +145,7 @@ class TagBundleDescription
         }
         return sizes;
     }
-    
+
     int memberID(int tagID) { return tags_[id2idx_[tagID]].id; }
     double memberSize(int tagID) { return tags_[id2idx_[tagID]].size; }
     cv::Matx44d memberT_oi(int tagID) { return tags_[id2idx_[tagID]].T_oi; }
@@ -233,9 +232,8 @@ class TagDetector
         const std_msgs::Header &header);
 
     // Detect tags in an image
-    AprilTagDetectionArray detectTags(
-        const cv_bridge::CvImagePtr &image,
-        const sensor_msgs::CameraInfoConstPtr &camera_info);
+    AprilTagDetectionArray detectTags(const cv_bridge::CvImagePtr &image,
+                                      const sensor_msgs::CameraInfoConstPtr &camera_info);
 
     // Get the pose of the tag in the camera frame
     // Returns homogeneous transformation matrix [R,t;[0 0 0 1]] which
