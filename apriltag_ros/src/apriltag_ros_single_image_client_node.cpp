@@ -29,8 +29,8 @@
  * Technology.
  */
 
-#include "apriltags2_ros/common_functions.h"
-#include <apriltags2_ros/AnalyzeSingleImage.h>
+#include "apriltag_ros/common_functions.h"
+#include <apriltag_ros/AnalyzeSingleImage.h>
 
 bool getRosParameter (ros::NodeHandle& pnh, std::string name, double& param)
 {
@@ -51,26 +51,26 @@ bool getRosParameter (ros::NodeHandle& pnh, std::string name, double& param)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "apriltags2_ros_single_image_client");
+  ros::init(argc, argv, "apriltag_ros_single_image_client");
 
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");
 
   ros::ServiceClient client =
-      nh.serviceClient<apriltags2_ros::AnalyzeSingleImage>(
+      nh.serviceClient<apriltag_ros::AnalyzeSingleImage>(
           "single_image_tag_detection");
 
   // Get the request parameters
-  apriltags2_ros::AnalyzeSingleImage service;
+  apriltag_ros::AnalyzeSingleImage service;
   service.request.full_path_where_to_get_image =
-      apriltags2_ros::getAprilTagOption<std::string>(
+      apriltag_ros::getAprilTagOption<std::string>(
           pnh, "image_load_path", "");
   if (service.request.full_path_where_to_get_image.empty())
   {
     return 1;
   }
   service.request.full_path_where_to_save_image =
-      apriltags2_ros::getAprilTagOption<std::string>(
+      apriltag_ros::getAprilTagOption<std::string>(
           pnh, "image_save_path", "");
   if (service.request.full_path_where_to_save_image.empty())
   {

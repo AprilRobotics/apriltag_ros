@@ -29,12 +29,12 @@
  * Technology.
  */
 
-#include "apriltags2_ros/single_image_detector.h"
+#include "apriltag_ros/single_image_detector.h"
 
 #include <opencv2/highgui/highgui.hpp>
 #include <std_msgs/Header.h>
 
-namespace apriltags2_ros
+namespace apriltag_ros
 {
 
 SingleImageDetector::SingleImageDetector (ros::NodeHandle& nh,
@@ -51,8 +51,8 @@ SingleImageDetector::SingleImageDetector (ros::NodeHandle& nh,
 }
 
 bool SingleImageDetector::analyzeImage(
-    apriltags2_ros::AnalyzeSingleImage::Request& request,
-    apriltags2_ros::AnalyzeSingleImage::Response& response)
+    apriltag_ros::AnalyzeSingleImage::Request& request,
+    apriltag_ros::AnalyzeSingleImage::Response& response)
 {
 
   ROS_INFO("[ Summoned to analyze image ]");
@@ -93,4 +93,4 @@ bool SingleImageDetector::analyzeImage(
   return true;
 }
 
-} // namespace apriltags2_ros
+} // namespace apriltag_ros

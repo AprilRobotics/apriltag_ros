@@ -29,13 +29,13 @@
  * Technology.
  */
 
-#include "apriltags2_ros/continuous_detector.h"
+#include "apriltag_ros/continuous_detector.h"
 
 #include <pluginlib/class_list_macros.h>
 
-PLUGINLIB_EXPORT_CLASS(apriltags2_ros::ContinuousDetector, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(apriltag_ros::ContinuousDetector, nodelet::Nodelet);
 
-namespace apriltags2_ros
+namespace apriltag_ros
 {
 
 ContinuousDetector::ContinuousDetector ()
@@ -69,7 +69,7 @@ void ContinuousDetector::imageCallback (
     const sensor_msgs::CameraInfoConstPtr& camera_info)
 {
   // Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
-  // AprilTags 2 on the iamge
+  // AprilTag 2 on the iamge
   try
   {
     cv_image_ = cv_bridge::toCvCopy(image_rect,
@@ -81,7 +81,7 @@ void ContinuousDetector::imageCallback (
     return;
   }
 
-  // Publish detected tags in the image by AprilTags 2
+  // Publish detected tags in the image by AprilTag 2
   tag_detections_publisher_.publish(
       tag_detector_->detectTags(cv_image_,camera_info));
 
@@ -94,4 +94,4 @@ void ContinuousDetector::imageCallback (
   }
 }
 
-} // namespace apriltags2_ros
+} // namespace apriltag_ros

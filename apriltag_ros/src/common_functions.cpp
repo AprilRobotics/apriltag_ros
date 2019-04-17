@@ -29,7 +29,7 @@
  * Technology.
  */
 
-#include "apriltags2_ros/common_functions.h"
+#include "apriltag_ros/common_functions.h"
 #include "image_geometry/pinhole_camera_model.h"
 
 #include "common/homography.h"
@@ -37,7 +37,7 @@
 #include "tag25h9.h"
 #include "tag16h5.h"
 
-namespace apriltags2_ros
+namespace apriltag_ros
 {
 
 TagDetector::TagDetector(ros::NodeHandle pnh) :
@@ -119,7 +119,7 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     exit(1);
   }
 
-  // Create the AprilTags 2 detector
+  // Create the AprilTag 2 detector
   td_ = apriltag_detector_create();
   apriltag_detector_add_family(td_, tf_);
   td_->quad_decimate = (float)decimate_;
@@ -167,7 +167,7 @@ AprilTagDetectionArray TagDetector::detectTags (
   // Convert image to AprilTag code's format
   cv::Mat gray_image;
   cv::cvtColor(image->image, gray_image, CV_BGR2GRAY);
-  image_u8_t apriltags2_image = { .width = gray_image.cols,
+  image_u8_t apriltag_image = { .width = gray_image.cols,
                                   .height = gray_image.rows,
                                   .stride = gray_image.cols,
                                   .buf = gray_image.data
@@ -182,13 +182,13 @@ AprilTagDetectionArray TagDetector::detectTags (
   double cx = camera_model.cx(); // optical center x-coordinate [px]
   double cy = camera_model.cy(); // optical center y-coordinate [px]
 
-  // Run AprilTags 2 algorithm on the image
+  // Run AprilTag 2 algorithm on the image
   if (detections_)
   {
     apriltag_detections_destroy(detections_);
     detections_ = NULL;
   }
-  detections_ = apriltag_detector_detect(td_, &apriltags2_image);
+  detections_ = apriltag_detector_detect(td_, &apriltag_image);
 
   // If remove_dulpicates_ is set to true, then duplicate tags are not allowed.
   // Thus any duplicate tag IDs visible in the scene must include at least 1
@@ -261,7 +261,7 @@ AprilTagDetectionArray TagDetector::detectTags (
     // Get estimated tag pose in the camera frame.
     //
     // Note on frames:
-    // The raw AprilTags 2 uses the following frames:
+    // The raw AprilTag 2 uses the following frames:
     //   - camera frame: looking from behind the camera (like a
     //     photographer), x is right, y is up and z is towards you
     //     (i.e. the back of camera)
@@ -742,4 +742,4 @@ bool TagDetector::findStandaloneTagDescription (
   return true;
 }
 
-} // namespace apriltags2_ros
+} // namespace apriltag_ros

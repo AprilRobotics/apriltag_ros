@@ -29,22 +29,17 @@
  * Technology.
  */
 
-#include <ros/ros.h>
-
-#include <nodelet/loader.h>
+#include "apriltag_ros/common_functions.h"
+#include "apriltag_ros/single_image_detector.h"
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "apriltags2_ros");
+  ros::init(argc, argv, "apriltag_ros_single_image_server");
 
-  nodelet::Loader nodelet;
-  nodelet::M_string remap(ros::names::getRemappings());
-  nodelet::V_string nargv;
+  ros::NodeHandle nh;
+  ros::NodeHandle pnh("~");
 
-  nodelet.load(ros::this_node::getName(),
-              "apriltags2_ros/ContinuousDetector",
-              remap, nargv);
-
+  apriltag_ros::SingleImageDetector continuous_tag_detector(nh, pnh);
+  
   ros::spin();
-  return 0;
 }

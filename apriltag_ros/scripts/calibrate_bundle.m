@@ -36,7 +36,7 @@
 %   point the camera at the AprilTag bundle such that all the bundle's
 %   individual tags are visible at least once at some point (the more the
 %   better). Run the script, then copy the printed output into the tag.yaml
-%   configuration file of apriltags2_ros.
+%   configuration file of apriltag_ros.
 %
 % $Revision: 1.0 $
 % $Date: 2017/12/17 13:37:34 $

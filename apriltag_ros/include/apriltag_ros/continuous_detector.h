@@ -40,16 +40,16 @@
  * Originator:        Danylo Malyuta, JPL
  ******************************************************************************/
 
-#ifndef APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
-#define APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
+#ifndef APRILTAG_ROS_CONTINUOUS_DETECTOR_H
+#define APRILTAG_ROS_CONTINUOUS_DETECTOR_H
 
-#include "apriltags2_ros/common_functions.h"
+#include "apriltag_ros/common_functions.h"
 
 #include <memory>
 
 #include <nodelet/nodelet.h>
 
-namespace apriltags2_ros
+namespace apriltag_ros
 {
 
 class ContinuousDetector: public nodelet::Nodelet
@@ -72,6 +72,6 @@ class ContinuousDetector: public nodelet::Nodelet
   ros::Publisher tag_detections_publisher_;
 };
 
-} // namespace apriltags2_ros
+} // namespace apriltag_ros
 
-#endif // APRILTAGS2_ROS_CONTINUOUS_DETECTOR_H
+#endif // APRILTAG_ROS_CONTINUOUS_DETECTOR_H

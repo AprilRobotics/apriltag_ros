@@ -31,7 +31,7 @@
  ** common_functions.h *********************************************************
  *
  * Wrapper classes for AprilTag standalone and bundle detection. Main function
- * is TagDetector::detectTags which wraps the call to core AprilTags 2
+ * is TagDetector::detectTags which wraps the call to core AprilTag 2
  * algorithm, apriltag_detector_detect().
  *
  * $Revision: 1.0 $
@@ -41,8 +41,8 @@
  * Originator:        Danylo Malyuta, JPL
  ******************************************************************************/
 
-#ifndef APRILTAGS2_ROS_COMMON_FUNCTIONS_H
-#define APRILTAGS2_ROS_COMMON_FUNCTIONS_H
+#ifndef APRILTAG_ROS_COMMON_FUNCTIONS_H
+#define APRILTAG_ROS_COMMON_FUNCTIONS_H
 
 #include <string>
 #include <sstream>
@@ -64,10 +64,10 @@
 
 #include "apriltag.h"
 
-#include "apriltags2_ros/AprilTagDetection.h"
-#include "apriltags2_ros/AprilTagDetectionArray.h"
+#include "apriltag_ros/AprilTagDetection.h"
+#include "apriltag_ros/AprilTagDetectionArray.h"
 
-namespace apriltags2_ros
+namespace apriltag_ros
 {
 
 template<typename T>
@@ -161,7 +161,7 @@ class TagDetector
   // Remove detections of tags with the same ID
   void removeDuplicates();
 
-  // AprilTags 2 code's attributes
+  // AprilTag 2 code's attributes
   std::string family_;
   int threads_;
   double decimate_;
@@ -169,7 +169,7 @@ class TagDetector
   int refine_edges_;
   int debug_;
 
-  // AprilTags 2 objects
+  // AprilTag 2 objects
   apriltag_family_t *tf_;
   apriltag_detector_t *td_;
   zarray_t *detections_;
@@ -234,6 +234,6 @@ class TagDetector
   void drawDetections(cv_bridge::CvImagePtr image);
 };
 
-} // namespace apriltags2_ros
+} // namespace apriltag_ros
 
-#endif // APRILTAGS2_ROS_COMMON_FUNCTIONS_H
+#endif // APRILTAG_ROS_COMMON_FUNCTIONS_H
