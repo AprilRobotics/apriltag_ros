@@ -2,27 +2,24 @@ cmake_minimum_required(VERSION 2.8.3)
 project(apriltag_ros)
 
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
+  cv_bridge
   geometry_msgs
-  image_transport
   image_geometry
+  image_transport
+  message_generation
+  nodelet
+  pluginlib
   roscpp
   sensor_msgs
   std_msgs
-  message_generation
-  cv_bridge
   tf
-  cmake_modules
-  nodelet
-  pluginlib
 )
 
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
-
-find_package(PkgConfig)
-pkg_search_module(apriltag REQUIRED apriltag)
-include_directories(${apriltag_INCLUDE_DIRS}/apriltag)
-link_directories(${apriltag_LIBDIR})
+find_package(apriltag REQUIRED)
+find_package(Threads REQUIRED)
 
 # Set the build type.  Options are:
 #  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
@@ -33,23 +30,23 @@ link_directories(${apriltag_LIBDIR})
 # set(CMAKE_BUILD_TYPE Release)
 
 set(CMAKE_CXX_STANDARD 11)
+add_compile_options("-O3" "-funsafe-loop-optimizations" "-fsee" "-funroll-loops" "-fno-math-errno" "-funsafe-math-optimizations" "-ffinite-math-only" "-fno-signed-zeros")
 
-# add_definitions(-Wall -O3)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -funsafe-loop-optimizations -fsee -funroll-loops -fno-math-errno -funsafe-math-optimizations -ffinite-math-only -fno-signed-zeros ")
-
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64 OR x86_32)
-  #message("enabling msse2 for x86_64 or x86_32 architecture")
-  #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -msse2 ")
-endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES x86_64 OR x86_32)
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm)
-  message("enabling -mfpu=neon -mfloat-abi=softfp for ARM architecture")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mtune=cortex-a9 -mvectorize-with-neon-quad -ffast-math ")
-endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES arm)
+# Note: These options have been turned off to allow for binary releases - 
+# in local builds, they can be reactivated to achieve higher performance.
+# if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "x86_64" OR "x86_32")
+#   message("enabling msse2 for x86_64 or x86_32 architecture")
+#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -msse2 ")
+# endif()
+# if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm")
+#   message("enabling -mfpu=neon -mfloat-abi=softfp for ARM architecture")
+#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mtune=cortex-a9 -mvectorize-with-neon-quad -ffast-math ")
+# endif()
 
 add_message_files(
   FILES
-  AprilTagDetectionArray.msg
   AprilTagDetection.msg
+  AprilTagDetectionArray.msg
 )
 
 add_service_files(
@@ -59,16 +56,31 @@ add_service_files(
 
 generate_messages(
   DEPENDENCIES
-  std_msgs
   geometry_msgs
   sensor_msgs
+  std_msgs
 )
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS geometry_msgs image_transport roscpp sensor_msgs std_msgs message_runtime cv_bridge tf nodelet pluginlib
-  DEPENDS OpenCV apriltag
-  LIBRARIES ${PROJECT_NAME}_common ${PROJECT_NAME}_continuous_detector ${PROJECT_NAME}_single_image_detector
+  CATKIN_DEPENDS
+    cv_bridge
+    geometry_msgs
+    image_transport
+    message_runtime
+    nodelet
+    pluginlib
+    roscpp
+    sensor_msgs
+    std_msgs
+    tf
+  DEPENDS
+    OpenCV
+    apriltag
+  LIBRARIES
+    ${PROJECT_NAME}_common
+    ${PROJECT_NAME}_continuous_detector
+    ${PROJECT_NAME}_single_image_detector
 )
 
 ###########
@@ -79,6 +91,7 @@ include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${apriltag_INCLUDE_DIRS}
 )
 
 add_library(${PROJECT_NAME}_common src/common_functions.cpp)
@@ -113,7 +126,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
   FILES_MATCHING PATTERN "*.h"
 )
 
-install(DIRECTORY launch config
+install(DIRECTORY config launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 install(FILES nodelet_plugins.xml
@@ -123,11 +136,13 @@ install(FILES nodelet_plugins.xml
 install(TARGETS
   ${PROJECT_NAME}_common
   ${PROJECT_NAME}_continuous_detector
-  ${PROJECT_NAME}_single_image_detector
   ${PROJECT_NAME}_continuous_node
-  ${PROJECT_NAME}_single_image_server_node
   ${PROJECT_NAME}_single_image_client_node
+  ${PROJECT_NAME}_single_image_detector
+  ${PROJECT_NAME}_single_image_server_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
+
+install(PROGRAMS scripts/analyze_image DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

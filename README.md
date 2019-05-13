@@ -2,9 +2,10 @@
 
 This is a Robot Operating System (ROS) wrapper of the [AprilTag 3 visual fiducial detector](https://april.eecs.umich.edu/software/apriltag.html). For details and tutorials, please see the [ROS wiki](http://wiki.ros.org/apriltag_ros).
 
-This wrapper depends on the latest release of the [AprilTag library](https://github.com/AprilRobotics/apriltag).
+This wrapper depends on the latest release of the [AprilTag library](https://github.com/AprilRobotics/apriltag). You can clone the upstream repository into your catkin workspace in order to build it.
 
 **Authors**: Danylo Malyuta, Wolfgang Merkt
+
 **Maintainer**: [Danylo Malyuta](mailto:danylo.malyuta@gmail.com) (NASA Jet Propulsion Laboratory, California Institute of Technology), [Wolfgang Merkt](https://github.com/wxmerkt)
 
 ## Contributing
