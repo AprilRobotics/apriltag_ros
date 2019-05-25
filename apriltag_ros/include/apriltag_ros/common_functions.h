@@ -62,7 +62,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <tf/transform_broadcaster.h>
 
-#include "apriltag.h"
+#include <apriltag.h>
 
 #include "apriltag_ros/AprilTagDetection.h"
 #include "apriltag_ros/AprilTagDetectionArray.h"
