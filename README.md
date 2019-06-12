@@ -1,12 +1,28 @@
 # apriltag_ros
 
-This is a Robot Operating System (ROS) wrapper of the [AprilTag 3 visual fiducial detector](https://april.eecs.umich.edu/software/apriltag.html). For details and tutorials, please see the [ROS wiki](http://wiki.ros.org/apriltag_ros).
+`apriltag_ros` is a Robot Operating System (ROS) wrapper of the [AprilTag 3 visual fiducial detector](https://april.eecs.umich.edu/software/apriltag.html). For details and tutorials, please see the [ROS wiki](http://wiki.ros.org/apriltag_ros).
 
-This wrapper depends on the latest release of the [AprilTag library](https://github.com/AprilRobotics/apriltag). You can clone the upstream repository into your catkin workspace in order to build it.
+`apriltag_ros` depends on the latest release of the [AprilTag library](https://github.com/AprilRobotics/apriltag). Clone it into your catkin workspace before building.
 
 **Authors**: Danylo Malyuta, Wolfgang Merkt
 
-**Maintainer**: [Danylo Malyuta](mailto:danylo.malyuta@gmail.com) (NASA Jet Propulsion Laboratory, California Institute of Technology), [Wolfgang Merkt](https://github.com/wxmerkt)
+**Maintainers**: [Danylo Malyuta](mailto:danylo.malyuta@gmail.com) (NASA Jet Propulsion Laboratory, California Institute of Technology), [Wolfgang Merkt](https://github.com/wxmerkt)
+
+## Quickstart
+
+Starting with a working ROS installation (Kinetic and Melodic are supported):
+```
+export ROS_DISTRO=melodic               # Set this to your distro, e.g. kinetic or melodic
+source /opt/ros/$ROS_DISTRO/setup.bash  # Source your ROS distro 
+mkdir -p ~/catkin_ws/src                # Make a new workspace 
+cd ~/catkin_ws/src                      # Navigate to the source space
+git clone https://github.com/AprilRobotics/apriltag.git      # Clone Apriltag library
+git clone https://github.com/AprilRobotics/apriltag_ros.git  # Clone Apriltag ROS wrapper
+cd ~/catkin_ws                          # Navigate to the workspace
+rosdep install --from-paths src --ignore-src -r -y  # Install any missing packages
+catkin build    # Build all packages in the workspace (catkin_make_isolated will work also)
+```
+See the [ROS wiki](http://wiki.ros.org/apriltag_ros) for details and tutorials.
 
 ## Contributing
 
