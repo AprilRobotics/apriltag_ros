@@ -33,6 +33,8 @@
 #include "image_geometry/pinhole_camera_model.h"
 
 #include "common/homography.h"
+#include "tagStandard52h13.h"
+#include "tagStandard41h12.h"
 #include "tag36h11.h"
 #include "tag25h9.h"
 #include "tag16h5.h"
@@ -101,7 +103,13 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
 
   // Define the tag family whose tags should be searched for in the camera
   // images
-  if (family_ == "tag36h11")
+  if (family_ == "tagStandard52h13") {
+    tf_ = tagStandard52h13_create();
+  }
+  else if (family_ == "tagStandard41h12") {
+    tf_ = tagStandard41h12_create();
+  }
+  else if (family_ == "tag36h11")
   {
     tf_ = tag36h11_create();
   }
@@ -147,7 +155,13 @@ TagDetector::~TagDetector() {
   apriltag_detections_destroy(detections_);
 
   // free memory associated with tag family
-  if (family_ == "tag36h11")
+  if (family_ == "tag51h13") {
+    tagStandard52h13_destroy(tf_);
+  }
+  else if (family_ == "tag41h12") {
+    tagStandard41h12_destroy(tf_);
+  }
+  else if (family_ == "tag36h11")
   {
     tag36h11_destroy(tf_);
   }
