@@ -166,7 +166,14 @@ AprilTagDetectionArray TagDetector::detectTags (
     const sensor_msgs::CameraInfoConstPtr& camera_info) {
   // Convert image to AprilTag code's format
   cv::Mat gray_image;
-  cv::cvtColor(image->image, gray_image, CV_BGR2GRAY);
+  if (image->image.channels() == 1)
+  {
+    gray_image = image->image;
+  }
+  else
+  {
+    cv::cvtColor(image->image, gray_image, CV_BGR2GRAY);
+  }
   image_u8_t apriltag_image = { .width = gray_image.cols,
                                   .height = gray_image.rows,
                                   .stride = gray_image.cols,
