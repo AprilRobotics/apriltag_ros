@@ -72,8 +72,7 @@ void ContinuousDetector::imageCallback (
   // AprilTag 2 on the iamge
   try
   {
-    cv_image_ = cv_bridge::toCvCopy(image_rect,
-                                    sensor_msgs::image_encodings::BGR8);
+    cv_image_ = cv_bridge::toCvCopy(image_rect, image_rect->encoding);
   }
   catch (cv_bridge::Exception& e)
   {
