@@ -33,6 +33,7 @@
 #include "image_geometry/pinhole_camera_model.h"
 
 #include "common/homography.h"
+#include "tagStandard41h12.h"
 #include "tag36h11.h"
 #include "tag25h9.h"
 #include "tag16h5.h"
@@ -113,6 +114,10 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   {
     tf_ = tag16h5_create();
   }
+  else if (family_ == "tagStandard41h12")
+  {
+    tf_ = tagStandard41h12_create();
+  }
   else
   {
     ROS_WARN("Invalid tag family specified! Aborting");
@@ -158,6 +163,10 @@ TagDetector::~TagDetector() {
   else if (family_ == "tag16h5")
   {
     tag16h5_destroy(tf_);
+  }
+  else if (family_ == "tagStandard41h12")
+  {
+    tagStandard41h12_destroy(tf_);
   }
 }
 
