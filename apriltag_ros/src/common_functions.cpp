@@ -103,10 +103,12 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
 
   // Define the tag family whose tags should be searched for in the camera
   // images
-  if (family_ == "tagStandard52h13") {
+  if (family_ == "tagStandard52h13")
+  {
     tf_ = tagStandard52h13_create();
   }
-  else if (family_ == "tagStandard41h12") {
+  else if (family_ == "tagStandard41h12")
+  {
     tf_ = tagStandard41h12_create();
   }
   else if (family_ == "tag36h11")
@@ -173,6 +175,10 @@ TagDetector::~TagDetector() {
   {
     tag16h5_destroy(tf_);
   }
+  else if (family_ == "tagStandard41h12")
+  {
+    tagStandard41h12_destroy(tf_);
+  }
 }
 
 AprilTagDetectionArray TagDetector::detectTags (
@@ -180,7 +186,14 @@ AprilTagDetectionArray TagDetector::detectTags (
     const sensor_msgs::CameraInfoConstPtr& camera_info) {
   // Convert image to AprilTag code's format
   cv::Mat gray_image;
-  cv::cvtColor(image->image, gray_image, CV_BGR2GRAY);
+  if (image->image.channels() == 1)
+  {
+    gray_image = image->image;
+  }
+  else
+  {
+    cv::cvtColor(image->image, gray_image, CV_BGR2GRAY);
+  }
   image_u8_t apriltag_image = { .width = gray_image.cols,
                                   .height = gray_image.rows,
                                   .stride = gray_image.cols,
