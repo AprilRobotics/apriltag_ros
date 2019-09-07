@@ -6,7 +6,7 @@
 
 **Authors**: Danylo Malyuta, Wolfgang Merkt
 
-**Maintainers**: [Danylo Malyuta](mailto:danylo.malyuta@gmail.com) (NASA Jet Propulsion Laboratory, California Institute of Technology), [Wolfgang Merkt](https://github.com/wxmerkt)
+**Maintainers**: [Danylo Malyuta](mailto:danylo.malyuta@gmail.com) ([Autonomous Control Laboratory](https://www.aa.washington.edu/research/acl), University of Washington), [Wolfgang Merkt](https://github.com/wxmerkt)
 
 ## Quickstart
 
@@ -41,9 +41,10 @@ Pull requests are welcome! Especially for the following areas:
 
 The source code in `apriltag_ros/` is original code that is the ROS wrapper itself, see the [LICENSE](https://github.com/AprilRobotics/apriltag_ros/blob/526b9455121ae0bb6b4c1c3db813f0fbdf78393c/LICENSE). It is inspired by [apriltags_ros](https://github.com/RIVeR-Lab/apriltags_ros) and provides a superset of its functionalities.
 
-If you use this code, please kindly cite:
+If you use this code, please kindly inform [Danylo Malyuta](mailto:danylo.malyuta@gmail.com) (to maintain a list here of research works that have benefited from the code) and cite:
 
 - D. Malyuta, C. Brommer, D. Hentzen, T. Stastny, R. Siegwart, and R. Brockers, “[Long-duration fully autonomous operation of rotorcraft unmanned aerial systems for remote-sensing data acquisition](https://onlinelibrary.wiley.com/doi/abs/10.1002/rob.21898),” Journal of Field Robotics, p. arXiv:1908.06381, Aug. 2019.
+- C. Brommer, D. Malyuta, D. Hentzen, and R. Brockers, “[Long-duration autonomy for small rotorcraft UAS including recharging](https://ieeexplore.ieee.org/document/8594111),” in IEEE/RSJ International Conference on Intelligent Robots and Systems, IEEE, p. arXiv:1810.05683, oct 2018.
 - J. Wang and E. Olson, "[AprilTag 2: Efficient and robust fiducial detection](http://ieeexplore.ieee.org/document/7759617/)," in ''Proceedings of the IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)'', October 2016.
 
 ```
@@ -57,6 +58,17 @@ If you use this code, please kindly cite:
   author = {Danylo Malyuta and Christian Brommer and Daniel Hentzen and Thomas Stastny and Roland Siegwart and Roland Brockers},
   title = {Long-duration fully autonomous operation of rotorcraft unmanned aerial systems for remote-sensing data acquisition},
   journal = {Journal of Field Robotics}
+}
+@inproceedings{Brommer2018,
+  doi = {10.1109/iros.2018.8594111},
+  url = {https://doi.org/10.1109/iros.2018.8594111},
+  pages = {arXiv:1810.05683},
+  year  = {2018},
+  month = {oct},
+  publisher = {{IEEE}},
+  author = {Christian Brommer and Danylo Malyuta and Daniel Hentzen and Roland Brockers},
+  title = {Long-Duration Autonomy for Small Rotorcraft {UAS} Including Recharging},
+  booktitle = {{IEEE}/{RSJ} International Conference on Intelligent Robots and Systems}
 }
 @inproceedings{Wang2016,
   author = {Wang, John and Olson, Edwin},
