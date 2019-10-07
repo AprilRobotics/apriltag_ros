@@ -157,10 +157,12 @@ TagDetector::~TagDetector() {
   apriltag_detections_destroy(detections_);
 
   // free memory associated with tag family
-  if (family_ == "tag51h13") {
+  if (family_ == "tagStandard52h13")
+  {
     tagStandard52h13_destroy(tf_);
   }
-  else if (family_ == "tag41h12") {
+  else if (family_ == "tagStandard41h12")
+  {
     tagStandard41h12_destroy(tf_);
   }
   else if (family_ == "tag36h11")
@@ -174,10 +176,6 @@ TagDetector::~TagDetector() {
   else if (family_ == "tag16h5")
   {
     tag16h5_destroy(tf_);
-  }
-  else if (family_ == "tagStandard41h12")
-  {
-    tagStandard41h12_destroy(tf_);
   }
 }
 
