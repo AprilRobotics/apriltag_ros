@@ -2,8 +2,8 @@
 Changelog for package apriltag_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+3.1.1 (2019-10-07)
+------------------
 * Add support for tagStandard41h12 and tagStandard52h13 (`#63 <https://github.com/AprilRobotics/apriltag_ros/issues/63>`_, `#59 <https://github.com/AprilRobotics/apriltag_ros/issues/59>`_).
 * Add gray image input support (`#58 <https://github.com/AprilRobotics/apriltag_ros/issues/58>`_).
 * Contributors: Alexander Reimann, Moritz Zimmermann, Samuel Bachmann, Wolfgang Merkt
