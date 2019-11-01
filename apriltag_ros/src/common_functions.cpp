@@ -38,6 +38,7 @@
 #include "tag36h11.h"
 #include "tag25h9.h"
 #include "tag16h5.h"
+#include "tagCustom48h12.h"
 
 namespace apriltag_ros
 {
@@ -123,6 +124,10 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   {
     tf_ = tag16h5_create();
   }
+  else if (family_ == "tagCustom48h12")
+  {
+    tf_ = tagCustom48h12_create();
+  }
   else
   {
     ROS_WARN("Invalid tag family specified! Aborting");
@@ -177,6 +182,13 @@ TagDetector::~TagDetector() {
   {
     tag16h5_destroy(tf_);
   }
+  else if (family_ == "tagCustom48h12")
+  {
+    tagCustom48h12_destroy(tf_);
+  }
+
+
+  
 }
 
 AprilTagDetectionArray TagDetector::detectTags (
