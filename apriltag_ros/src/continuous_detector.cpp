@@ -52,16 +52,29 @@ void ContinuousDetector::onInit ()
       "publish_tag_detections_image", false);
   it_ = std::shared_ptr<image_transport::ImageTransport>(
       new image_transport::ImageTransport(nh));
-
-  camera_image_subscriber_ =
-      it_->subscribeCamera("image_rect", 1,
-                          &ContinuousDetector::imageCallback, this);
+  
+  single_shot_detection_ = getAprilTagOption<bool>(pnh, 
+      "single_shot_detection", false);
+      
+  if (!single_shot_detection_)
+  {
+    camera_image_subscriber_ =
+        it_->subscribeCamera("image_rect", 1,
+                            &ContinuousDetector::imageCallback, this);
+    ROS_INFO("Running in continous mode.");
+  }
+  else {
+    ROS_INFO("Running in single shot detection mode.");
+  }
+  
   tag_detections_publisher_ =
       nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
   if (draw_tag_detections_image_)
   {
     tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
   }
+
+  single_shot_service_ = nh.advertiseService("single_shot_detect_tags", &ContinuousDetector::singleShotService, this);
 }
 
 void ContinuousDetector::imageCallback (
@@ -91,6 +104,34 @@ void ContinuousDetector::imageCallback (
     tag_detector_->drawDetections(cv_image_);
     tag_detections_image_publisher_.publish(cv_image_->toImageMsg());
   }
+  
+  if (single_shot_detection_) 
+  {
+      camera_image_subscriber_.shutdown();
+  }
+}
+
+bool ContinuousDetector::singleShotService (
+    std_srvs::Trigger::Request& request, 
+    std_srvs::Trigger::Response& response)
+{
+    if (!camera_image_subscriber_) {
+        camera_image_subscriber_ =
+            it_->subscribeCamera("image_rect", 1,
+                                &ContinuousDetector::imageCallback, this);
+        response.success = true;
+        response.message = "Single shot tag detection activated.";
+    }
+    else 
+    {
+        response.success = false;
+        if (!single_shot_detection_)
+            response.message = "Not in single shot detection mode.";
+        else
+            response.message = "Already waiting for single shot detection.";
+        
+    }
+    return true;
 }
 
 } // namespace apriltag_ros
