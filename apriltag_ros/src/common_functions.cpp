@@ -130,11 +130,11 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   {
     tf_ = tagCustom48h12_create();
   }
- else if (family_ == "tagCircle21h7")
+  else if (family_ == "tagCircle21h7")
   {
     tf_ = tagCircle21h7_create();
   }
- else if (family_ == "tagCircle49h12")
+  else if (family_ == "tagCircle49h12")
   {
     tf_ = tagCircle49h12_create();
   }
