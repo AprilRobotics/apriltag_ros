@@ -38,31 +38,87 @@ PLUGINLIB_EXPORT_CLASS(apriltag_ros::ContinuousDetector, nodelet::Nodelet);
 namespace apriltag_ros
 {
 
-ContinuousDetector::ContinuousDetector ()
+ContinuousDetector::ContinuousDetector ():
+  started_(false)
 {
 }
 
 void ContinuousDetector::onInit ()
 {
-  ros::NodeHandle& nh = getNodeHandle();
   ros::NodeHandle& pnh = getPrivateNodeHandle();
+
+  pnh.param<bool>("autostart", autostart_, true);
 
   tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
   draw_tag_detections_image_ = getAprilTagOption<bool>(pnh, 
       "publish_tag_detections_image", false);
-  it_ = std::shared_ptr<image_transport::ImageTransport>(
-      new image_transport::ImageTransport(nh));
 
-  camera_image_subscriber_ =
-      it_->subscribeCamera("image_rect", 1,
-                          &ContinuousDetector::imageCallback, this);
-  tag_detections_publisher_ =
-      nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
-  if (draw_tag_detections_image_)
+  startService_ = pnh.advertiseService("start", &ContinuousDetector::startService, this);
+  stopService_ = pnh.advertiseService("stop", &ContinuousDetector::stopService, this);
+
+  if (autostart_)
   {
-    tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
+    start();
   }
 }
+
+void ContinuousDetector::start ()
+{
+  if (!started_)
+  {
+    ros::NodeHandle& nh = getNodeHandle();
+
+    it_ = std::shared_ptr<image_transport::ImageTransport>(
+        new image_transport::ImageTransport(nh));
+    camera_image_subscriber_ =
+        it_->subscribeCamera("image_rect", 1,
+                            &ContinuousDetector::imageCallback, this);
+    tag_detections_publisher_ =
+        nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
+    if (draw_tag_detections_image_)
+    {
+      tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
+    }
+    ROS_INFO_STREAM("AprilTag continuous detector started");
+    started_ = true;
+  }
+  else
+  {
+    ROS_WARN_STREAM("Attempted to start AprilTag continuous detector, but it is already started");
+  }
+}
+
+void ContinuousDetector::stop ()
+{
+  if (started_)
+  {
+    camera_image_subscriber_.shutdown();
+    tag_detections_publisher_.shutdown();
+    if (draw_tag_detections_image_)
+    {
+      tag_detections_image_publisher_.shutdown();
+    }
+    ROS_INFO_STREAM("AprilTag continuous detector stopped");
+    started_ = false;
+  }
+  else
+  {
+    ROS_WARN_STREAM("Attempted to stop AprilTag continuous detector, but it is already stopped");
+  }
+}
+
+bool ContinuousDetector::startService (std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+{
+  start();
+  return true;
+}
+
+bool ContinuousDetector::stopService (std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+{
+  stop();
+  return true;
+}
+
 
 void ContinuousDetector::imageCallback (
     const sensor_msgs::ImageConstPtr& image_rect,
