@@ -2,8 +2,8 @@
 Changelog for package apriltag_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+3.1.2 (2020-07-15)
+------------------
 * Add support for tagCircle21h7, tagCircle49h12 (`#69 <https://github.com/AprilRobotics/apriltag_ros/issues/69>`_)
 * Add support for tagCustom48h12 (`#65 <https://github.com/AprilRobotics/apriltag_ros/issues/65>`_)
 * Contributors: Anthony Biviano, Kyle Saltmarsh, Wolfgang Merkt, kai wu

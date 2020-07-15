@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>apriltag_ros</name>
-  <version>3.1.1</version>
+  <version>3.1.2</version>
   <description>
     A ROS wrapper of the AprilTag 3 visual fiducial detection
     algorithm. Provides full access to the core AprilTag 3 algorithm's
