@@ -204,8 +204,7 @@ class TagDetector
       bool printWarning = true);
 
   geometry_msgs::PoseWithCovarianceStamped makeTagPose(
-      const Eigen::Matrix4d& transform,
-      const Eigen::Quaternion<double> rot_quaternion,
+      const Eigen::Isometry3d& transform,
       const std_msgs::Header& header);
 
   // Detect tags in an image
