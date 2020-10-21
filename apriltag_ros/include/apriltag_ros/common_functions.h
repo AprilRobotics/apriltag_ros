@@ -113,7 +113,7 @@ class TagBundleDescription
  public:
   std::map<int, int > id2idx_; // (id2idx_[<tag ID>]=<index in tags_>) mapping
 
-  TagBundleDescription(std::string name) :
+  TagBundleDescription(const std::string& name) :
       name_(name) {}
 
   void addMemberTag(int id, double size, cv::Matx44d T_oi) {
@@ -125,7 +125,7 @@ class TagBundleDescription
     id2idx_[id] = tags_.size()-1;
   }
 
-  std::string name () const { return name_; }
+  const std::string& name() const { return name_; }
   // Get IDs of bundle member tags
   std::vector<int> bundleIds () {
     std::vector<int> ids;
@@ -220,9 +220,9 @@ class TagDetector
   // rotation from the tag frame to the camera frame and t is the
   // vector from the camera frame origin to the tag frame origin,
   // expressed in the camera frame.
-  Eigen::Matrix4d getRelativeTransform(
-      std::vector<cv::Point3d > objectPoints,
-      std::vector<cv::Point2d > imagePoints,
+  Eigen::Isometry3d getRelativeTransform(
+      const std::vector<cv::Point3d >& objectPoints,
+      const std::vector<cv::Point2d >& imagePoints,
       double fx, double fy, double cx, double cy) const;
   
   void addImagePoints(apriltag_detection_t *detection,

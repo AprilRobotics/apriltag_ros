@@ -242,7 +242,7 @@ AprilTagDetectionArray TagDetector::detectTags (
   }
   detections_ = apriltag_detector_detect(td_, &apriltag_image);
 
-  // If remove_dulpicates_ is set to true, then duplicate tags are not allowed.
+  // If remove_duplicates_ is set to true, then duplicate tags are not allowed.
   // Thus any duplicate tag IDs visible in the scene must include at least 1
   // erroneous detection. Remove any tags with duplicate IDs to ensure removal
   // of these erroneous detections
@@ -487,9 +487,9 @@ void TagDetector::addImagePoints (
   }
 }
 
-Eigen::Matrix4d TagDetector::getRelativeTransform(
-    std::vector<cv::Point3d > objectPoints,
-    std::vector<cv::Point2d > imagePoints,
+Eigen::Isometry3d TagDetector::getRelativeTransform(
+    const std::vector<cv::Point3d >& objectPoints,
+    const std::vector<cv::Point2d >& imagePoints,
     double fx, double fy, double cx, double cy) const
 {
   // perform Perspective-n-Point camera pose estimation using the
