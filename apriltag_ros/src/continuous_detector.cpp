@@ -37,11 +37,6 @@ PLUGINLIB_EXPORT_CLASS(apriltag_ros::ContinuousDetector, nodelet::Nodelet);
 
 namespace apriltag_ros
 {
-
-ContinuousDetector::ContinuousDetector ()
-{
-}
-
 void ContinuousDetector::onInit ()
 {
   ros::NodeHandle& nh = getNodeHandle();
