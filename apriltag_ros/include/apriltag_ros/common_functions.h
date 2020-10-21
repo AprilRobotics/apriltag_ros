@@ -232,6 +232,8 @@ class TagDetector
 
   // Draw the detected tags' outlines and payload values on the image
   void drawDetections(cv_bridge::CvImagePtr image);
+
+  bool get_publish_tf() const { return publish_tf_; }
 };
 
 } // namespace apriltag_ros
