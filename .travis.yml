@@ -1,0 +1,21 @@
+# This config uses industrial_ci (https://github.com/ros-industrial/industrial_ci.git).
+# For troubleshooting, see readme (https://github.com/ros-industrial/industrial_ci/blob/master/README.rst)
+
+language: generic # optional, just removes the language badge
+services:
+  - docker
+cache:
+  directories:
+    - $HOME/.ccache
+git:
+  quiet: true # optional, silences the cloning of the target repository
+env:
+  global:
+    - CCACHE_DIR=$HOME/.ccache # enables C/C++ caching in industrial_ci
+  matrix: # each line is a job
+    - ROS_DISTRO="melodic"
+    - ROS_DISTRO="noetic"
+install:
+  - git clone --quiet --depth 1 https://github.com/ros-industrial/industrial_ci.git .industrial_ci
+script:
+  - .industrial_ci/travis.sh
