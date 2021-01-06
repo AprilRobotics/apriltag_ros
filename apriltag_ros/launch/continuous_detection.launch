@@ -1,20 +1,56 @@
 <launch>
-  <arg name="launch_prefix" default="" /> <!-- set to value="gdbserver localhost:10000" for remote debugging -->
-  <arg name="node_namespace" default="apriltag_ros_continuous_node" />
-  <arg name="camera_name" default="/camera_rect" />
-  <arg name="camera_frame" default="camera" />
-  <arg name="image_topic" default="image_rect" />
+  <arg name="namespace"                               default="vision"                     doc="parent namespace for nodes and topics"/>
+  <arg name="run_as_nodelet"                          default="true"                       doc="flag to quickly switch back and forth between running as node or nodelet"/>
+  <arg name="nodelet_namespace"                       default="vision"                     doc="namespace for nodelet manager"/>
+  <arg name="nodelet_manager"                         default="tag_nodelet_manager"        doc="name of nodelet manager"/>
+  <arg name="start_nodelet_manager"                   default="true"                      doc="flag to create nodelet manager, otherwise it is assumed to already exist"/>
 
-  <!-- Set parameters -->
-  <rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
-  <rosparam command="load" file="$(find apriltag_ros)/config/tags.yaml" ns="$(arg node_namespace)" />
+  <arg name="id"                                      default="basler_camera_front"        doc="id appended to node/nodelet names"/>
+  <arg name="camera_frame"                            default=""                           doc="overrides frame in detection messages, set to empty string to use frame in camera_info topic"/>  
+  <arg name="common_frame"                            default=""                           doc="use to transform all detections into a common frame, useful for multicamera setups"/>  
+  <arg name="is_rectified"                            default="true"                      doc="if false subscriber will use camera_info to rectify the image (using K and D matrixes), otherwise camera_info is only used to develop pinhole camera model (P matrix)"/>  
+  <arg name="publish_tag_detections_image"            default="false"/>
+
+  <arg name="launch_prefix"                           default=""/> <!-- set to value="gdbserver localhost:10000" for remote debugging -->
+
+  <!-- Start Nodelet Manager  -->
+  <node if="$(eval arg('start_nodelet_manager') and arg('run_as_nodelet'))" 
+    ns="$(arg nodelet_namespace)" name="$(arg nodelet_manager)" 
+    pkg="nodelet" type="nodelet" args="manager" output="screen"/>
   
-  <node pkg="apriltag_ros" type="apriltag_ros_continuous_node" name="$(arg node_namespace)" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" >
-    <!-- Remap topics from those used in code to those on the ROS network -->
-    <remap from="image_rect" to="$(arg camera_name)/$(arg image_topic)" />
-    <remap from="camera_info" to="$(arg camera_name)/camera_info" />
+  <!-- Node -->
+  <group unless="$(arg run_as_nodelet)">
+    <node pkg="apriltag_ros" type="apriltag_ros_continuous_node" 
+      ns="$(arg namespace)" name="$(arg id)_apriltag_node" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)" >
 
-    <param name="camera_frame" type="str" value="$(arg camera_frame)" />
-    <param name="publish_tag_detections_image" type="bool" value="true" />      <!-- default: false -->
-  </node>
+      <rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml"/>
+      <rosparam command="load" file="$(find apriltag_ros)/config/tags.yaml" />
+      <rosparam command="load" file="$(find apriltag_ros)/config/cameras.yaml"/>
+
+      <param name="camera_frame" value="$(arg camera_frame)" />
+      <param name="common_frame" value="$(arg common_frame)" />
+      <param name="is_rectified" value="$(arg is_rectified)" />
+      <param name="publish_tag_detections_image" value="$(arg publish_tag_detections_image)" />
+
+    </node>
+  </group>
+
+  <!-- Nodelet -->
+  <group if="$(arg run_as_nodelet)">
+    <node pkg="nodelet" type="nodelet" 
+      name="$(arg id)_apriltag_nodelet"
+      args="load apriltag_ros/ContinuousDetector /$(arg nodelet_namespace)/$(arg nodelet_manager)" output="screen">
+
+      <rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml"/>
+      <rosparam command="load" file="$(find apriltag_ros)/config/tags.yaml" />
+      <rosparam command="load" file="$(find apriltag_ros)/config/cameras.yaml"/>
+
+      <param name="camera_frame" value="$(arg camera_frame)" />
+      <param name="common_frame" value="$(arg common_frame)" />
+      <param name="is_rectified" value="$(arg is_rectified)" />
+      <param name="publish_tag_detections_image" value="$(arg publish_tag_detections_image)" />
+
+    </node>
+  </group>
+
 </launch>

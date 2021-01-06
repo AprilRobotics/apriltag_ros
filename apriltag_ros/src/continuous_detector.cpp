@@ -39,46 +39,86 @@ namespace apriltag_ros
 {
 void ContinuousDetector::onInit ()
 {
-  ros::NodeHandle& nh = getNodeHandle();
-  ros::NodeHandle& pnh = getPrivateNodeHandle();
+  ros::NodeHandle& nh = getMTNodeHandle();
+  ros::NodeHandle& pnh = getMTPrivateNodeHandle();
 
-  tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
+  //Parameters
+  pnh.param("output_frequency", output_frequency_, 10.0);
+  pnh.param("is_rectified", is_rectified_, true);
+  
   draw_tag_detections_image_ = getAprilTagOption<bool>(pnh, 
       "publish_tag_detections_image", false);
+
+  //Get camera information
+  XmlRpc::XmlRpcValue cameraImage;
+    pnh.param("camera_image", cameraImage, cameraImage);
+  XmlRpc::XmlRpcValue cameraInfo;
+    pnh.param("camera_info", cameraInfo, cameraInfo);
+
+  for(int i =0; (i < cameraImage.size()) && (i < cameraInfo.size()); i++)
+  {
+    camera_.emplace_back(nh, pnh, cameraImage[i], cameraInfo[i]);
+  }
+
+  //Camera subscribers
+  for(int i=0; i < camera_.size(); i++)
+  {
+    //Camera
+    camera_[i].cameraSync->registerCallback(boost::bind(&ContinuousDetector::imageCallback, this, _1, _2, i));
+  }
+
+  //Publisher
   it_ = std::shared_ptr<image_transport::ImageTransport>(
       new image_transport::ImageTransport(nh));
-
-  camera_image_subscriber_ =
-      it_->subscribeCamera("image_rect", 1,
-                          &ContinuousDetector::imageCallback, this);
   tag_detections_publisher_ =
       nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
+  pub_timer_ = nh.createTimer(ros::Duration(1.0/output_frequency_), boost::bind(&ContinuousDetector::publishDetections, this, _1));
   if (draw_tag_detections_image_)
   {
     tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
   }
+
 }
 
 void ContinuousDetector::imageCallback (
-    const sensor_msgs::ImageConstPtr& image_rect,
-    const sensor_msgs::CameraInfoConstPtr& camera_info)
+    const sensor_msgs::ImageConstPtr& camera_image,
+    const sensor_msgs::CameraInfoConstPtr& camera_info, 
+    int index)
 {
+  
+  //ROS_INFO("image callback %d", index);
   // Lazy updates:
   // When there are no subscribers _and_ when tf is not published,
   // skip detection.
   if (tag_detections_publisher_.getNumSubscribers() == 0 &&
       tag_detections_image_publisher_.getNumSubscribers() == 0 &&
-      !tag_detector_->get_publish_tf())
+      !camera_[index].tag_detector->get_publish_tf())
   {
     // ROS_INFO_STREAM("No subscribers and no tf publishing, skip processing.");
     return;
   }
 
+  //extract camera instrinsics from camera_info
+  cv::Mat camera_instrinsics = cv::Mat(3, 3, CV_64F);
+  for (int row = 0; row < 3; row++)
+  {
+    for (int col = 0; col < 3; col++)
+    {
+      camera_instrinsics.at<double>(row, col) = camera_info->K[row * 3 + col];
+    }
+  }
+
+  cv::Mat distortion_coefficients = cv::Mat(1, 5, CV_64F);
+  for (int col = 0; col < 5; col++)
+  {
+    distortion_coefficients.at<double>(col) = camera_info->D[col];
+  }
+
   // Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
-  // AprilTag 2 on the iamge
+  // AprilTag on the image
   try
   {
-    cv_image_ = cv_bridge::toCvCopy(image_rect, image_rect->encoding);
+    camera_[index].cv_image = cv_bridge::toCvCopy(camera_image, camera_image->encoding);
   }
   catch (cv_bridge::Exception& e)
   {
@@ -86,17 +126,33 @@ void ContinuousDetector::imageCallback (
     return;
   }
 
-  // Publish detected tags in the image by AprilTag 2
-  tag_detections_publisher_.publish(
-      tag_detector_->detectTags(cv_image_,camera_info));
-
+  //Perform detections
+  AprilTagDetectionArray detections = camera_[index].tag_detector->detectTags(camera_[index].cv_image,camera_info);
+  
   // Publish the camera image overlaid by outlines of the detected tags and
   // their payload values
   if (draw_tag_detections_image_)
   {
-    tag_detector_->drawDetections(cv_image_);
-    tag_detections_image_publisher_.publish(cv_image_->toImageMsg());
+    camera_[index].tag_detector->drawDetections(camera_[index].cv_image);
+    tag_detections_image_publisher_.publish(camera_[index].cv_image->toImageMsg());
   }
+
+  // Merge detections into common array
+  std::lock_guard<std::recursive_mutex> myLock(mutex_);
+  if(tag_detection_array_.detections.size() <= 1) tag_detection_array_.header = detections.header;
+  for(int i =0 ; i < detections.detections.size(); i++)
+  {
+    tag_detection_array_.detections.push_back(detections.detections[i]);
+  }
+}
+
+void ContinuousDetector::publishDetections(const ros::TimerEvent& event)
+{
+  std::lock_guard<std::recursive_mutex> myLock(mutex_);
+
+  tag_detections_publisher_.publish(tag_detection_array_);
+
+  tag_detection_array_.detections.clear();
 }
 
 } // namespace apriltag_ros

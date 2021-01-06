@@ -251,6 +251,31 @@ class TagDetector
   bool get_publish_tf() const { return publish_tf_; }
 };
 
+class Camera
+{
+  public:
+    Camera(ros::NodeHandle &node_handle, ros::NodeHandle &private_node_handle, const std::string &image_topic, const std::string &info_topic)
+    {
+      cameraImage_topic = image_topic;
+      cameraInfo_topic = info_topic;
+
+      cameraImage_sub = new message_filters::Subscriber<sensor_msgs::Image>(node_handle, cameraImage_topic, 10);
+      cameraInfo_sub = new message_filters::Subscriber<sensor_msgs::CameraInfo>(node_handle, cameraInfo_topic, 10);
+      cameraSync  = new message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::CameraInfo>(*cameraImage_sub, *cameraInfo_sub, 10);
+
+      tag_detector = std::shared_ptr<TagDetector>(new TagDetector(private_node_handle));
+    }
+
+    std::string cameraImage_topic, cameraInfo_topic;
+
+    message_filters::Subscriber<sensor_msgs::Image>* cameraImage_sub;
+    message_filters::Subscriber<sensor_msgs::CameraInfo>* cameraInfo_sub;
+    message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::CameraInfo> *cameraSync;
+    
+    cv_bridge::CvImagePtr cv_image;
+    std::shared_ptr<TagDetector> tag_detector;
+};
+
 } // namespace apriltag_ros
 
 #endif // APRILTAG_ROS_COMMON_FUNCTIONS_H

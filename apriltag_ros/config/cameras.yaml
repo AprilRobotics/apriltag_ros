@@ -1,0 +1,13 @@
+camera_image:
+  [                                             #List of camera_image topics to be used.
+  "/vision/basler_camera_bow/throttled/rgb_image_rect",
+  "/vision/basler_camera_port/throttled/rgb_image_rect",
+  "/vision/basler_camera_star/throttled/rgb_image_rect"
+  ]
+
+camera_info:                                    #List of camera_info topics that go with the camera_image topics above.  Both topics are required.
+  [
+  "/vision/basler_camera_bow/throttled/camera_info",
+  "/vision/basler_camera_port/throttled/camera_info",
+  "/vision/basler_camera_star/throttled/camera_info"
+  ]
