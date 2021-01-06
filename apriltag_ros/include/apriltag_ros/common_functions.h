@@ -60,7 +60,18 @@
 #include <opencv2/core/core.hpp>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
-#include <tf/transform_broadcaster.h>
+
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/message_filter.h>
+#include <tf2_eigen/tf2_eigen.h>
+
+#include <tf2_sensor_msgs/tf2_sensor_msgs.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/transform_broadcaster.h>
+
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
 
 #include <apriltag.h>
 
@@ -180,8 +191,12 @@ class TagDetector
   bool remove_duplicates_;
   bool run_quietly_;
   bool publish_tf_;
-  tf::TransformBroadcaster tf_pub_;
-  std::string camera_tf_frame_;
+  std::string camera_tf_frame_, common_frame_;
+
+  tf2_ros::TransformBroadcaster tfBroadcaster_;
+  tf2_ros::Buffer tfBuffer_;
+  tf2_ros::TransformListener tfListener_;
+  double wait_for_tf_delay_;
 
  public:
 

@@ -158,8 +158,8 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   // Get tf frame name to use for the camera
   if (!pnh.getParam("camera_frame", camera_tf_frame_))
   {
-    ROS_WARN_STREAM("Camera frame not specified, using 'camera'");
-    camera_tf_frame_ = "camera";
+    ROS_INFO_STREAM("Camera frame not specified, using value in camera_info header");
+    camera_tf_frame_ = "";
   }
 }
 
@@ -389,16 +389,25 @@ AprilTagDetectionArray TagDetector::detectTags (
 
   // If set, publish the transform /tf topic
   if (publish_tf_) {
+   
+    static tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;
     for (unsigned int i=0; i<tag_detection_array.detections.size(); i++) {
       geometry_msgs::PoseStamped pose;
       pose.pose = tag_detection_array.detections[i].pose.pose.pose;
       pose.header = tag_detection_array.detections[i].pose.header;
-      tf::Stamped<tf::Transform> tag_transform;
-      tf::poseStampedMsgToTF(pose, tag_transform);
-      tf_pub_.sendTransform(tf::StampedTransform(tag_transform,
-                                                 tag_transform.stamp_,
-                                                 camera_tf_frame_,
-                                                 detection_names[i]));
+      geometry_msgs::TransformStamped transform;
+      transform.header = pose.header;
+      if(camera_tf_frame_ != "") transform.header.frame_id = camera_tf_frame_;
+      transform.child_frame_id = detection_names[i];
+      transform.transform.translation.x = pose.pose.position.x;
+      transform.transform.translation.y = pose.pose.position.y;
+      transform.transform.translation.z = pose.pose.position.z;
+      transform.transform.rotation.x = pose.pose.orientation.x;
+      transform.transform.rotation.y = pose.pose.orientation.y;
+      transform.transform.rotation.z = pose.pose.orientation.z;
+      transform.transform.rotation.w = pose.pose.orientation.w;
+      br.sendTransform(transform);
     }
   }
 
