@@ -52,7 +52,8 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     blur_(getAprilTagOption<double>(pnh, "tag_blur", 0.0)),
     refine_edges_(getAprilTagOption<int>(pnh, "tag_refine_edges", 1)),
     debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
-    publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false))
+    publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false)),
+    tfListener_(tfBuffer_)
 {
   // Parse standalone tag descriptions specified by user (stored on ROS
   // parameter server)
@@ -161,6 +162,18 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     ROS_INFO_STREAM("Camera frame not specified, using value in camera_info header");
     camera_tf_frame_ = "";
   }
+
+  //Get common frame name to use for the detections
+  if (!pnh.getParam("common_frame", common_frame_))
+  {
+    common_frame_ = "";
+  }
+
+  //Set wait time for tf transforms
+  if (!pnh.getParam("wait_for_tf_delay", wait_for_tf_delay_))
+  {
+    wait_for_tf_delay_ = 0.50;
+  }
 }
 
 // destructor
@@ -251,13 +264,29 @@ AprilTagDetectionArray TagDetector::detectTags (
     removeDuplicates();
   }
 
-  // Compute the estimated translation and rotation individually for each
-  // detected tag
+  //Setup arrays
   AprilTagDetectionArray tag_detection_array;
   std::vector<std::string > detection_names;
   tag_detection_array.header = image->header;
+  tag_detection_array.header.frame_id = common_frame_;
   std::map<std::string, std::vector<cv::Point3d > > bundleObjectPoints;
   std::map<std::string, std::vector<cv::Point2d > > bundleImagePoints;
+
+  //Determine transform from image to common_frame
+  geometry_msgs::TransformStamped cameraTransform;
+  if(common_frame_ != "")
+  {
+    if(tfBuffer_.canTransform(common_frame_, camera_info->header.frame_id, camera_info->header.stamp, ros::Duration(wait_for_tf_delay_))){
+      cameraTransform = tfBuffer_.lookupTransform(common_frame_, camera_info->header.frame_id, camera_info->header.stamp, ros::Duration(wait_for_tf_delay_));
+    }
+    else {
+      ROS_WARN_STREAM("Waiting for transform from " << camera_info->header.frame_id << " to " << common_frame_ << " to become available.");
+      return tag_detection_array;
+    }
+  }
+
+  // Compute the estimated translation and rotation individually for each
+  // detected tag
   for (int i=0; i < zarray_size(detections_); i++)
   {
     // Get the i-th detected tag
@@ -340,6 +369,7 @@ AprilTagDetectionArray TagDetector::detectTags (
 
     geometry_msgs::PoseWithCovarianceStamped tag_pose =
         makeTagPose(transform, rot_quaternion, image->header);
+    if(common_frame_ != "") tf2::doTransform(tag_pose, tag_pose, cameraTransform);  //Transform tag to common_frame
 
     // Add the detection to the back of the tag detection array
     AprilTagDetection tag_detection;
@@ -376,6 +406,7 @@ AprilTagDetectionArray TagDetector::detectTags (
 
       geometry_msgs::PoseWithCovarianceStamped bundle_pose =
           makeTagPose(transform, rot_quaternion, image->header);
+      if(common_frame_ != "") tf2::doTransform(bundle_pose, bundle_pose, cameraTransform);             //Transform tag to common_frame
 
       // Add the detection to the back of the tag detection array
       AprilTagDetection tag_detection;
