@@ -13,7 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
-  tf
+  tf2_ros
+  tf2_eigen
+  tf2_geometry_msgs
+  tf2_sensor_msgs
 )
 
 find_package(Eigen3 REQUIRED)
@@ -82,7 +85,10 @@ catkin_package(
     roscpp
     sensor_msgs
     std_msgs
-    tf
+    tf2_ros
+    tf2_eigen
+    tf2_geometry_msgs
+    tf2_sensor_msgs
   DEPENDS
     OpenCV
     apriltag
