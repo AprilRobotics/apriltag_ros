@@ -52,6 +52,7 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     blur_(getAprilTagOption<double>(pnh, "tag_blur", 0.0)),
     refine_edges_(getAprilTagOption<int>(pnh, "tag_refine_edges", 1)),
     debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
+    max_hamming_distance_(getAprilTagOption<int>(pnh, "max_hamming_dist", 2)),
     publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false))
 {
   // Parse standalone tag descriptions specified by user (stored on ROS
@@ -146,7 +147,7 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
 
   // Create the AprilTag 2 detector
   td_ = apriltag_detector_create();
-  apriltag_detector_add_family(td_, tf_);
+  apriltag_detector_add_family_bits(td_, tf_, max_hamming_distance_);
   td_->quad_decimate = (float)decimate_;
   td_->quad_sigma = (float)blur_;
   td_->nthreads = threads_;

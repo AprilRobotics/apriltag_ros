@@ -168,6 +168,7 @@ class TagDetector
   double blur_;
   int refine_edges_;
   int debug_;
+  int max_hamming_distance_;
 
   // AprilTag 2 objects
   apriltag_family_t *tf_;
