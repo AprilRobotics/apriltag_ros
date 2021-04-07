@@ -7,5 +7,6 @@ tag_decimate:      1.0        # default: 1.0
 tag_blur:          0.0        # default: 0.0
 tag_refine_edges:  1          # default: 1
 tag_debug:         0          # default: 0
+max_hamming_dist:  2          # default: 2 (Tunable parameter with 2 being a good choice - values >=3 consume large amounts of memory. Choose the largest value possible.)
 # Other parameters
 publish_tf:        true       # default: false

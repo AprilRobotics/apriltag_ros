@@ -168,6 +168,9 @@ class TagDetector
   double blur_;
   int refine_edges_;
   int debug_;
+  int max_hamming_distance_ = 2;  // Tunable, but really, 2 is a good choice. Values of >=3
+                                  // consume prohibitively large amounts of memory, and otherwise
+                                  // you want the largest value possible.
 
   // AprilTag 2 objects
   apriltag_family_t *tf_;
