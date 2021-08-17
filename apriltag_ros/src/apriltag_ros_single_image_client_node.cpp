@@ -95,6 +95,11 @@ int main(int argc, char **argv)
   service.request.camera_info.K[4] = fy;
   service.request.camera_info.K[5] = cy;
   service.request.camera_info.K[8] = 1.0;
+  service.request.camera_info.P[0] = fx;
+  service.request.camera_info.P[2] = cx;
+  service.request.camera_info.P[5] = fy;
+  service.request.camera_info.P[6] = cy;
+  service.request.camera_info.P[10] = 1.0;
 
   // Call the service (detect tags in the image specified by the
   // image_load_path)
