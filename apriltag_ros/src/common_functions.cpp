@@ -155,13 +155,6 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   td_->refine_edges = refine_edges_;
 
   detections_ = NULL;
-
-  // Get tf frame name to use for the camera
-  if (!pnh.getParam("camera_frame", camera_tf_frame_))
-  {
-    ROS_WARN_STREAM("Camera frame not specified, using 'camera'");
-    camera_tf_frame_ = "camera";
-  }
 }
 
 // destructor
@@ -398,7 +391,7 @@ AprilTagDetectionArray TagDetector::detectTags (
       tf::poseStampedMsgToTF(pose, tag_transform);
       tf_pub_.sendTransform(tf::StampedTransform(tag_transform,
                                                  tag_transform.stamp_,
-                                                 camera_tf_frame_,
+                                                 image->header.frame_id,
                                                  detection_names[i]));
     }
   }
