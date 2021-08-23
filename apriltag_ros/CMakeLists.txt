@@ -81,7 +81,6 @@ catkin_package(
     tf
   DEPENDS
     OpenCV
-    apriltag
   LIBRARIES
     ${PROJECT_NAME}_common
     ${PROJECT_NAME}_continuous_detector
