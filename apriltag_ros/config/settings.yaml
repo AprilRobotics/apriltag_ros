@@ -10,3 +10,4 @@ tag_debug:         0          # default: 0
 max_hamming_dist:  2          # default: 2 (Tunable parameter with 2 being a good choice - values >=3 consume large amounts of memory. Choose the largest value possible.)
 # Other parameters
 publish_tf:        true       # default: false
+transport_hint:    "raw"      # default: raw, see http://wiki.ros.org/image_transport#Known_Transport_Packages for options
