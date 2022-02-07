@@ -10,7 +10,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/AprilTagDetectionArray.msg"
   "srv/AnalyzeSingleImage.srv"
   DEPENDENCIES
-    "builtin_interfaces"
+    "geometry_msgs"
+    "sensor_msgs"
+    "std_msgs"
 )
 
 if(BUILD_TESTING)
