@@ -1,20 +1,18 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(apriltag_ros)
 
-find_package(catkin REQUIRED COMPONENTS
-  cmake_modules
-  cv_bridge
-  geometry_msgs
-  image_geometry
-  image_transport
-  message_generation
-  nodelet
-  pluginlib
-  roscpp
-  sensor_msgs
-  std_msgs
-  tf
-)
+### Compile options
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+endif()
+
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
 find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
@@ -27,16 +25,17 @@ find_package(apriltag REQUIRED)
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 # We default to 'Release' if none was specified
-IF(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  MESSAGE(STATUS "Setting build type to 'Release' as none was specified.")
-  SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the build type" FORCE)
-  SET_PROPERTY(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Coverage" "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-ENDIF()
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'Release' as none was specified.")
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the build type" FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Coverage" "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
 
+add_compile_options(
+  "-O3" "-funsafe-loop-optimizations" "-fsee" "-funroll-loops" "-fno-math-errno"
+  "-funsafe-math-optimizations" "-ffinite-math-only" "-fno-signed-zeros")
 
-add_compile_options("-O3" "-funsafe-loop-optimizations" "-fsee" "-funroll-loops" "-fno-math-errno" "-funsafe-math-optimizations" "-ffinite-math-only" "-fno-signed-zeros")
-
-# Note: These options have been turned off to allow for binary releases - 
+# Note: These options have been turned off to allow for binary releases -
 # in local builds, they can be reactivated to achieve higher performance.
 # if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "x86_64" OR "x86_32")
 #   message("enabling msse2 for x86_64 or x86_32 architecture")
@@ -44,114 +43,67 @@ add_compile_options("-O3" "-funsafe-loop-optimizations" "-fsee" "-funroll-loops"
 # endif()
 # if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm")
 #   message("enabling -mfpu=neon -mfloat-abi=softfp for ARM architecture")
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mtune=cortex-a9 -mvectorize-with-neon-quad -ffast-math ")
+#   set(CMAKE_CXX_FLAGS
+#     "${CMAKE_CXX_FLAGS} -march=armv7-a -mcpu=cortex-a9 -mfpu=neon -mtune=cortex-a9 -mvectorize-with-neon-quad -ffast-math ")
 # endif()
 
-add_message_files(
-  FILES
-  AprilTagDetection.msg
-  AprilTagDetectionArray.msg
-)
-
-add_service_files(
-  FILES
-  AnalyzeSingleImage.srv
-)
-
-generate_messages(
-  DEPENDENCIES
-  geometry_msgs
-  sensor_msgs
-  std_msgs
-)
-
-# Extract the include directories and libraries from apriltag::apriltag as catkin_package() does not support modern cmake.
-get_target_property(apriltag_INCLUDE_DIRS apriltag::apriltag INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(apriltag_LIBRARIES apriltag::apriltag INTERFACE_LINK_LIBRARIES)
-
-catkin_package(
-  INCLUDE_DIRS
-    include
-    ${EIGEN3_INCLUDE_DIRS}
-  CATKIN_DEPENDS
-    cv_bridge
-    geometry_msgs
-    image_transport
-    message_runtime
-    nodelet
-    pluginlib
-    roscpp
-    sensor_msgs
-    std_msgs
-    tf
-  DEPENDS
-    apriltag
-    OpenCV
-  LIBRARIES
-    ${PROJECT_NAME}_common
-    ${PROJECT_NAME}_continuous_detector
-    ${PROJECT_NAME}_single_image_detector
-)
-
-###########
-## Build ##
-###########
 
 include_directories(include
-  ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
-add_library(${PROJECT_NAME}_common src/common_functions.cpp)
-add_dependencies(${PROJECT_NAME}_common ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_common ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} apriltag::apriltag)
-
-add_library(${PROJECT_NAME}_continuous_detector src/continuous_detector.cpp)
-target_link_libraries(${PROJECT_NAME}_continuous_detector ${PROJECT_NAME}_common ${catkin_LIBRARIES})
-
-add_library(${PROJECT_NAME}_single_image_detector src/single_image_detector.cpp)
-target_link_libraries(${PROJECT_NAME}_single_image_detector ${PROJECT_NAME}_common ${catkin_LIBRARIES})
-
-add_executable(${PROJECT_NAME}_continuous_node src/${PROJECT_NAME}_continuous_node.cpp)
-add_dependencies(${PROJECT_NAME}_continuous_node ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_continuous_node ${PROJECT_NAME}_continuous_detector ${catkin_LIBRARIES})
-
-add_executable(${PROJECT_NAME}_single_image_server_node src/${PROJECT_NAME}_single_image_server_node.cpp)
-add_dependencies(${PROJECT_NAME}_single_image_server_node ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_single_image_server_node ${PROJECT_NAME}_single_image_detector ${catkin_LIBRARIES})
-
-add_executable(${PROJECT_NAME}_single_image_client_node src/${PROJECT_NAME}_single_image_client_node.cpp)
-add_dependencies(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_common ${catkin_LIBRARIES})
-
-
-#############
-## Install ##
-#############
-
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  FILES_MATCHING PATTERN "*.h"
+ament_auto_add_library(${PROJECT_NAME}_common SHARED
+  src/common_functions.cpp
 )
-
-install(DIRECTORY config launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+target_link_libraries(${PROJECT_NAME}_common
+  ${OpenCV_LIBRARIES}
+  apriltag::apriltag
 )
-install(FILES nodelet_plugins.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+if(${tf2_geometry_msgs_VERSION} VERSION_GREATER_EQUAL 0.18.0)
+  target_compile_definitions(${PROJECT_NAME}_common PRIVATE
+    USE_TF2_GEOMETRY_MSGS_HPP_HEADER=1
+  )
+endif()
 
-install(TARGETS
+ament_auto_add_library(${PROJECT_NAME}_continuous_detector SHARED
+  src/continuous_detector.cpp
+)
+target_link_libraries(${PROJECT_NAME}_continuous_detector
   ${PROJECT_NAME}_common
-  ${PROJECT_NAME}_continuous_detector
-  ${PROJECT_NAME}_continuous_node
-  ${PROJECT_NAME}_single_image_client_node
-  ${PROJECT_NAME}_single_image_detector
-  ${PROJECT_NAME}_single_image_server_node
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+rclcpp_components_register_node(${PROJECT_NAME}_continuous_detector
+  PLUGIN "apriltag_ros::ContinuousDetector"
+  EXECUTABLE ${PROJECT_NAME}_continuous_detector_node
 )
 
-install(PROGRAMS scripts/analyze_image DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+ament_auto_add_library(${PROJECT_NAME}_single_image_detector SHARED
+  src/single_image_detector.cpp
+)
+target_link_libraries(${PROJECT_NAME}_single_image_detector
+  ${PROJECT_NAME}_common
+)
+rclcpp_components_register_node(${PROJECT_NAME}_single_image_detector
+  PLUGIN "apriltag_ros::SingleImageDetector"
+  EXECUTABLE ${PROJECT_NAME}_single_image_detector_node
+)
+
+ament_auto_add_library(${PROJECT_NAME}_single_image_client SHARED
+  src/single_image_client.cpp
+)
+rclcpp_components_register_node(${PROJECT_NAME}_single_image_client
+  PLUGIN "apriltag_ros::SingleImageClient"
+  EXECUTABLE ${PROJECT_NAME}_single_image_client_node
+)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_auto_package(
+  INSTALL_TO_SHARE
+    config
+    launch
+    scripts
+)

@@ -1,0 +1,59 @@
+/**:
+  ros__parameters:
+    # # Definitions of tags to detect
+    #
+    # ## General remarks
+    #
+    # - All length in meters
+    # - Ellipsis (...) signifies that the previous element can be repeated multiple times.
+    #
+    # ## Standalone tag definitions
+    # ### Remarks
+    #
+    #
+    # ### Syntax
+    #
+    # standalone_tags:
+    #   tag_names: ["TAG_NAME", ...]
+    #   TAG_NAME:
+    #     id: ID
+    #     size: SIZE
+    #   ...
+    #
+    standalone_tags:
+      tag_names: ["tag_3"]
+      tag_3:
+        id: 3
+        size: 1.0
+
+    # ## Tag bundle definitions
+    # ### Remarks
+    #
+    # - x, y, z have default values of 0 thus they are optional
+    # - qw has default value of 1 and qx, qy, qz have default values of 0 thus they are optional
+    #
+    # ### Syntax
+    #
+    # tag_bundles:
+    #   bundle_names: ["CUSTOM_BUNDLE_NAME", ...]
+    #   CUSTOM_BUNDLE_NAME:
+    #     layout:
+    #       ids: [ID, ...]
+    #       ID:
+    #         size: SIZE
+    #         x: X_POS
+    #         y: Y_POS
+    #         z: Z_POS
+    #         qw: QUAT_W_VAL
+    #         qx: QUAT_X_VAL
+    #         qy: QUAT_Y_VAL
+    #         qz: QUAT_Z_VAL
+    #       ...
+    #   ...
+    tag_bundles:
+      bundle_names: ["bundle_0"]
+      bundle_0:
+        layout:
+          ids: [3]
+          3:
+            size: 1.0

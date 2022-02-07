@@ -1,0 +1,15 @@
+<launch>
+
+  <arg name="launch_prefix" default="" /> <!--set to value="gdbserver localhost:10000" for remote debugging-->
+
+  <!-- Set parameters -->
+  <!--<rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
+  <rosparam command="load" file="$(find apriltag_ros)/config/tags.yaml" ns="$(arg node_namespace)" />
+  -->
+
+  <node pkg="apriltag_ros" exec="apriltag_ros_single_image_detector_node" name="apriltag_ros_single_image_detector_node" output="screen" launch-prefix="$(var launch_prefix)">
+    <param from="$(find-pkg-share apriltag_ros)/config/settings.param.yaml" />
+    <param from="$(find-pkg-share apriltag_ros)/config/tags.param.yaml" />
+  </node>
+
+</launch>

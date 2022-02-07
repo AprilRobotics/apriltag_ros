@@ -1,0 +1,17 @@
+<launch>
+  <arg name="launch_prefix" default="" /> <!-- set to value="gdbserver localhost:10000" for remote debugging -->
+  <arg name="camera_name" default="camera_rect" />
+  <arg name="image_topic" default="image_rect" />
+
+  <node pkg="apriltag_ros" exec="apriltag_ros_continuous_detector_node" name="apriltag_ros_continuous_detector_node" output="screen" launch-prefix="$(var launch_prefix)" >
+    <!-- Remap topics from those used in code to those on the ROS network -->
+    <remap from="~/image_rect" to="$(var camera_name)/$(var image_topic)" />
+    <remap from="~/camera_info" to="$(var camera_name)/camera_info" />
+
+    <!-- Set parameters -->
+    <param from="$(find-pkg-share apriltag_ros)/config/settings.param.yaml" />
+    <param from="$(find-pkg-share apriltag_ros)/config/tags.param.yaml" />
+
+    <param name="publish_tag_detections_image" value="true" />
+  </node>
+</launch>
