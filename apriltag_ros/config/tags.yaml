@@ -4,7 +4,7 @@
 #
 # - All length in meters
 # - 'size' refers to the length of the shared border between solid black and solid white rectangle.
-#   See https://github.com/AprilRobotics/apriltag/wiki/AprilTag-User-Guide#pose-estimation for details.
+#   See README.md or https://github.com/AprilRobotics/apriltag/wiki/AprilTag-User-Guide#pose-estimation for details.
 # - Ellipsis (...) signifies that the previous element can be repeated multiple times.
 #
 # ## Standalone tag definitions
