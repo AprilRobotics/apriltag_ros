@@ -2,6 +2,16 @@
 Changelog for package apriltag_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add transport hint option (`#108 <https://github.com/AprilRobotics/apriltag_ros/issues/108>`_)
+* Move to using the apriltag CMake target (`#104 <https://github.com/AprilRobotics/apriltag_ros/issues/104>`_)
+* Set the tag's parent frame to the camera optical frame (`#101 <https://github.com/AprilRobotics/apriltag_ros/issues/101>`_)
+* Fix bug in K matrix in single_image_client (`#103 <https://github.com/AprilRobotics/apriltag_ros/issues/103>`_)
+* Add configurable max_hamming_distance for the AprilTag Detector (`#93 <https://github.com/AprilRobotics/apriltag_ros/issues/93>`_)
+* Introduce lazy processing for ContinuousDetector (`#80 <https://github.com/AprilRobotics/apriltag_ros/issues/80>`_)
+* Contributors: Akshay Prasad, Amal Nanavati, Christian Rauch, Hongzhuo Liang, Wolfgang Merkt
+
 3.1.2 (2020-07-15)
 ------------------
 * Add support for tagCircle21h7, tagCircle49h12 (`#69 <https://github.com/AprilRobotics/apriltag_ros/issues/69>`_)
