@@ -2,8 +2,8 @@
 Changelog for package apriltag_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+3.2.0 (2022-03-10)
+------------------
 * Add transport hint option (`#108 <https://github.com/AprilRobotics/apriltag_ros/issues/108>`_)
 * Move to using the apriltag CMake target (`#104 <https://github.com/AprilRobotics/apriltag_ros/issues/104>`_)
 * Set the tag's parent frame to the camera optical frame (`#101 <https://github.com/AprilRobotics/apriltag_ros/issues/101>`_)
