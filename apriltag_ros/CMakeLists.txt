@@ -85,8 +85,8 @@ catkin_package(
     std_msgs
     tf
   DEPENDS
-    OpenCV
     apriltag
+    OpenCV
   LIBRARIES
     ${PROJECT_NAME}_common
     ${PROJECT_NAME}_continuous_detector
