@@ -65,8 +65,14 @@ generate_messages(
   std_msgs
 )
 
+# Extract the include directories and libraries from apriltag::apriltag as catkin_package() does not support modern cmake.
+get_target_property(apriltag_INCLUDE_DIRS apriltag::apriltag INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(apriltag_LIBRARIES apriltag::apriltag INTERFACE_LINK_LIBRARIES)
+
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS
+    include
+    ${EIGEN3_INCLUDE_DIRS}
   CATKIN_DEPENDS
     cv_bridge
     geometry_msgs
@@ -80,6 +86,7 @@ catkin_package(
     tf
   DEPENDS
     OpenCV
+    apriltag
   LIBRARIES
     ${PROJECT_NAME}_common
     ${PROJECT_NAME}_continuous_detector
