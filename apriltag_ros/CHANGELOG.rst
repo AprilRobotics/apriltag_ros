@@ -2,6 +2,12 @@
 Changelog for package apriltag_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fixed propagation of apriltag and Eigen headers and libraries (`#124 <https://github.com/AprilRobotics/apriltag_ros/issues/124>`_)
+* Drop old C++11 as it breaks with new log4cxx.
+* Contributors: Jochen Sprickerhof, Remo Diethelm, Wolfgang Merkt
+
 3.2.0 (2022-03-10)
 ------------------
 * Add transport hint option (`#108 <https://github.com/AprilRobotics/apriltag_ros/issues/108>`_)
