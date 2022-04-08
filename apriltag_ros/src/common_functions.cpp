@@ -163,7 +163,10 @@ TagDetector::~TagDetector() {
   apriltag_detector_destroy(td_);
 
   // Free memory associated with the array of tag detections
-  apriltag_detections_destroy(detections_);
+  if(detections_)
+  {
+    apriltag_detections_destroy(detections_);
+  }
 
   // free memory associated with tag family
   if (family_ == "tagStandard52h13")
