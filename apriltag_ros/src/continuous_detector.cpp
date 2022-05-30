@@ -31,7 +31,7 @@
 
 #include "apriltag_ros/continuous_detector.h"
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 
 PLUGINLIB_EXPORT_CLASS(apriltag_ros::ContinuousDetector, nodelet::Nodelet);
 
