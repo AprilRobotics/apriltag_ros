@@ -547,7 +547,7 @@ std::map<int, StandaloneTagDescription> TagDetector::parseStandaloneTags(rclcpp:
     "standalone_tags.tag_names",
     std::vector<std::string>());
   // Loop through all tag descriptions
-  for (const auto name : tag_names) {
+  for (const auto & name : tag_names) {
     const auto id = node->declare_parameter<int64_t>(
       "standalone_tags." + name + ".id"
     );
