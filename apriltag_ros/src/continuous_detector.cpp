@@ -52,7 +52,7 @@ ContinuousDetector::ContinuousDetector(const rclcpp::NodeOptions & node_options)
     std::bind(
       &ContinuousDetector::imageCallback,
       this, std::placeholders::_1, std::placeholders::_2), transport_hint);
-  tag_detections_publisher_ = create_publisher<apriltag_msgs::msg::AprilTagDetectionArray>(
+  tag_detections_publisher_ = create_publisher<apriltag_ros::msg::AprilTagDetectionArray>(
     "~/tag_detections", 1);
   if (draw_tag_detections_image_) {
     tag_detections_image_publisher_ = image_transport::create_publisher(

@@ -70,8 +70,8 @@
 #include "sensor_msgs/image_encodings.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
-#include "apriltag_msgs/msg/april_tag_detection.hpp"
-#include "apriltag_msgs/msg/april_tag_detection_array.hpp"
+#include "apriltag_ros/msg/april_tag_detection.hpp"
+#include "apriltag_ros/msg/april_tag_detection_array.hpp"
 
 namespace apriltag_ros
 {
@@ -208,7 +208,7 @@ public:
     const std_msgs::msg::Header & header);
 
   // Detect tags in an image
-  apriltag_msgs::msg::AprilTagDetectionArray detectTags(
+  apriltag_ros::msg::AprilTagDetectionArray detectTags(
     const cv_bridge::CvImagePtr & image,
     const sensor_msgs::msg::CameraInfo::ConstSharedPtr & camera_info);
 

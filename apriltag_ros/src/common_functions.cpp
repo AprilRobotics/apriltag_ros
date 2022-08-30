@@ -144,7 +144,7 @@ TagDetector::~TagDetector()
   }
 }
 
-apriltag_msgs::msg::AprilTagDetectionArray TagDetector::detectTags(
+apriltag_ros::msg::AprilTagDetectionArray TagDetector::detectTags(
   const cv_bridge::CvImagePtr & image,
   const sensor_msgs::msg::CameraInfo::ConstSharedPtr & camera_info)
 {
@@ -188,7 +188,7 @@ apriltag_msgs::msg::AprilTagDetectionArray TagDetector::detectTags(
 
   // Compute the estimated translation and rotation individually for each
   // detected tag
-  apriltag_msgs::msg::AprilTagDetectionArray tag_detection_array;
+  apriltag_ros::msg::AprilTagDetectionArray tag_detection_array;
   std::vector<std::string> detection_names;
   tag_detection_array.header = image->header;
   std::map<std::string, std::vector<cv::Point3d>> bundleObjectPoints;
@@ -277,7 +277,7 @@ apriltag_msgs::msg::AprilTagDetectionArray TagDetector::detectTags(
       makeTagPose(transform, rot_quaternion, image->header);
 
     // Add the detection to the back of the tag detection array
-    apriltag_msgs::msg::AprilTagDetection tag_detection;
+    apriltag_ros::msg::AprilTagDetection tag_detection;
     tag_detection.pose = tag_pose;
     tag_detection.id.push_back(detection->id);
     tag_detection.size.push_back(tag_size);
@@ -312,7 +312,7 @@ apriltag_msgs::msg::AprilTagDetectionArray TagDetector::detectTags(
         makeTagPose(transform, rot_quaternion, image->header);
 
       // Add the detection to the back of the tag detection array
-      apriltag_msgs::msg::AprilTagDetection tag_detection;
+      apriltag_ros::msg::AprilTagDetection tag_detection;
       tag_detection.pose = bundle_pose;
       tag_detection.id = bundle.bundleIds();
       tag_detection.size = bundle.bundleSizes();

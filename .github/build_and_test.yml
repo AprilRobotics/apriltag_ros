@@ -43,6 +43,6 @@ jobs:
       - name: build and test
         uses: ros-tooling/action-ros-ci@master
         with:
-          package-name: apriltag_ros apriltag_msgs
+          package-name: apriltag_ros
           target-ros2-distro: ${{ matrix.ros_distribution }}
           vcs-repo-file-url: ""

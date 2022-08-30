@@ -50,18 +50,18 @@ SingleImageDetector::SingleImageDetector(const rclcpp::NodeOptions & node_option
 
   tag_detector_ = std::make_unique<TagDetector>(this);
   // Advertise the single image analysis service
-  single_image_analysis_service_ = create_service<apriltag_msgs::srv::AnalyzeSingleImage>(
+  single_image_analysis_service_ = create_service<apriltag_ros::srv::AnalyzeSingleImage>(
     "single_image_tag_detection",
     std::bind(&SingleImageDetector::analyzeImage, this, _1, _2, _3));
-  tag_detections_publisher_ = create_publisher<apriltag_msgs::msg::AprilTagDetectionArray>(
+  tag_detections_publisher_ = create_publisher<apriltag_ros::msg::AprilTagDetectionArray>(
     "tag_detections", 1);
   RCLCPP_INFO_STREAM(get_logger(), "Ready to do tag detection on single images");
 }
 
 bool SingleImageDetector::analyzeImage(
   [[ maybe_unused ]] const std::shared_ptr<rmw_request_id_t> request_header,
-  apriltag_msgs::srv::AnalyzeSingleImage::Request::SharedPtr request,
-  apriltag_msgs::srv::AnalyzeSingleImage::Response::SharedPtr response)
+  apriltag_ros::srv::AnalyzeSingleImage::Request::SharedPtr request,
+  apriltag_ros::srv::AnalyzeSingleImage::Response::SharedPtr response)
 {
   RCLCPP_INFO(get_logger(), "[ Summoned to analyze image ]");
   RCLCPP_INFO_STREAM(

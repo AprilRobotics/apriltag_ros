@@ -49,7 +49,7 @@
 
 #include <memory>
 
-#include "apriltag_msgs/msg/april_tag_detection_array.hpp"
+#include "apriltag_ros/msg/april_tag_detection_array.hpp"
 #include "apriltag_ros/common_functions.hpp"
 #include "rclcpp/rclcpp.hpp"
 
@@ -72,7 +72,7 @@ private:
 
   image_transport::CameraSubscriber camera_image_subscriber_;
   image_transport::Publisher tag_detections_image_publisher_;
-  rclcpp::Publisher<apriltag_msgs::msg::AprilTagDetectionArray>::SharedPtr
+  rclcpp::Publisher<apriltag_ros::msg::AprilTagDetectionArray>::SharedPtr
     tag_detections_publisher_;
 };
 

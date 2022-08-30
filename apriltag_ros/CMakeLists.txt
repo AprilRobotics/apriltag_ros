@@ -48,6 +48,15 @@ add_compile_options(
 # endif()
 
 
+find_package(rosidl_default_generators REQUIRED)
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/AprilTagDetection.msg"
+  "msg/AprilTagDetectionArray.msg"
+  "srv/AnalyzeSingleImage.srv"
+  DEPENDENCIES
+    geometry_msgs sensor_msgs std_msgs
+)
+
 include_directories(include
   ${EIGEN3_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
@@ -64,6 +73,15 @@ if(${tf2_geometry_msgs_VERSION} VERSION_GREATER_EQUAL 0.18.0)
   target_compile_definitions(${PROJECT_NAME}_common PRIVATE
     USE_TF2_GEOMETRY_MSGS_HPP_HEADER=1
   )
+endif()
+
+if(${rosidl_cmake_VERSION} VERSION_LESS 2.5.0)
+  rosidl_target_interfaces(${PROJECT_NAME}_common
+    ${PROJECT_NAME} "rosidl_typesupport_cpp")
+else()
+  rosidl_get_typesupport_target(
+    cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+  target_link_libraries(${PROJECT_NAME}_common "${cpp_typesupport_target}")
 endif()
 
 ament_auto_add_library(${PROJECT_NAME}_continuous_detector SHARED

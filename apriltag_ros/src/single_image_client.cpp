@@ -36,7 +36,7 @@
 #include <string>
 
 #include "apriltag_ros/common_functions.hpp"
-#include "apriltag_msgs/srv/analyze_single_image.hpp"
+#include "apriltag_ros/srv/analyze_single_image.hpp"
 
 namespace apriltag_ros
 {
@@ -52,7 +52,7 @@ SingleImageClient::SingleImageClient(
 {
   using std::chrono_literals::operator""s;
 
-  auto client = create_client<apriltag_msgs::srv::AnalyzeSingleImage>(
+  auto client = create_client<apriltag_ros::srv::AnalyzeSingleImage>(
     "single_image_tag_detection");
 
   while (!client->wait_for_service(1s)) {
@@ -65,7 +65,7 @@ SingleImageClient::SingleImageClient(
   }
 
   // Get the request parameters
-  auto request = std::make_shared<apriltag_msgs::srv::AnalyzeSingleImage::Request>();
+  auto request = std::make_shared<apriltag_ros::srv::AnalyzeSingleImage::Request>();
   request->full_path_where_to_get_image = declare_parameter<std::string>("image_load_path");
   request->full_path_where_to_save_image = declare_parameter<std::string>("image_save_path");
   // Replicate sensors_msgs/CameraInfo message (must be up-to-date with the
