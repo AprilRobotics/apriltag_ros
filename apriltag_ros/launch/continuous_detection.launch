@@ -3,6 +3,7 @@
   <arg name="node_namespace" default="apriltag_ros_continuous_node" />
   <arg name="camera_name" default="/camera_rect" />
   <arg name="image_topic" default="image_rect" />
+  <arg name="queue_size" default="1" />
 
   <!-- Set parameters -->
   <rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
@@ -14,5 +15,6 @@
     <remap from="camera_info" to="$(arg camera_name)/camera_info" />
 
     <param name="publish_tag_detections_image" type="bool" value="true" />      <!-- default: false -->
+    <param name="queue_size" type="int" value="$(arg queue_size)" />
   </node>
 </launch>

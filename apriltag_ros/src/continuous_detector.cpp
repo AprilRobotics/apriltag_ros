@@ -51,8 +51,10 @@ void ContinuousDetector::onInit ()
   std::string transport_hint;
   pnh.param<std::string>("transport_hint", transport_hint, "raw");
 
+  int queue_size;
+  pnh.param<int>("queue_size", queue_size, 1);
   camera_image_subscriber_ =
-      it_->subscribeCamera("image_rect", 1,
+      it_->subscribeCamera("image_rect", queue_size,
                           &ContinuousDetector::imageCallback, this,
                           image_transport::TransportHints(transport_hint));
   tag_detections_publisher_ =
