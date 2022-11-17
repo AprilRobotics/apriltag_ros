@@ -404,8 +404,8 @@ AprilTagDetectionArray TagDetector::detectTags (
 
 int TagDetector::idComparison (const void* first, const void* second)
 {
-  int id1 = ((apriltag_detection_t*) first)->id;
-  int id2 = ((apriltag_detection_t*) second)->id;
+  int id1 = (*(apriltag_detection_t**)first)->id;
+  int id2 = (*(apriltag_detection_t**)first)->id;
   return (id1 < id2) ? -1 : ((id1 == id2) ? 0 : 1);
 }
 
