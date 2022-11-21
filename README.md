@@ -24,6 +24,13 @@ catkin build    # Build all packages in the workspace (catkin_make_isolated will
 ```
 See the [ROS wiki](http://wiki.ros.org/apriltag_ros) for details and tutorials.
 
+## Tag Size Definition
+
+For a correct depth estimation (and hence the correct full pose) it is necessary to specify the tag size in config/tags.yaml correctly. In the [Wiki for the AprilTag Library](https://github.com/AprilRobotics/apriltag/wiki/AprilTag-User-Guide#pose-estimation)  the correct interpretation of the term "tag size" is explained. The size is defined by the length of the black/white border between the complete black and white rectangle of any tag type. Note that for apriltag3 marker families this does not in fact correspond to the outside of the marker.
+
+Below is a visualization of the tag size (red arrow) to be specified for the most common tag classes:
+![Tag Size Guide](./apriltag_ros/docs/tag_size_guide.svg)
+
 ## Contributing
 
 Pull requests are welcome! Especially for the following areas:

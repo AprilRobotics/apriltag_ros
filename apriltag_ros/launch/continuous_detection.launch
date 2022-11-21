@@ -3,9 +3,9 @@
   <arg name="launch_prefix" default="" />
 
   <!-- configure camera input -->
-  <arg name="camera_name" default="/cv_camera" />
-  <arg name="camera_frame" default="camera" />
+  <arg name="camera_name" default="/camera_rect" />
   <arg name="image_topic" default="image_rect" />
+  <arg name="queue_size" default="1" />
 
   <!-- apriltag_ros continuous detection node -->
   <node pkg="apriltag_ros" type="apriltag_ros_continuous_node" name="apriltag_ros_continuous_node" clear_params="true" output="screen" launch-prefix="$(arg launch_prefix)">
@@ -13,8 +13,8 @@
     <remap from="image_rect" to="$(arg camera_name)/$(arg image_topic)" />
     <remap from="camera_info" to="$(arg camera_name)/camera_info" />
 
-    <param name="camera_frame" type="str" value="$(arg camera_frame)" />
     <param name="publish_tag_detections_image" type="bool" value="true" /><!-- default: false -->
+    <param name="queue_size" type="int" value="$(arg queue_size)" />
 
     <!-- load parameters (incl. tag family, tags, etc.) -->
     <rosparam command="load" file="$(find apriltag_ros)/config/settings.yaml"/>

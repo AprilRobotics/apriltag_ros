@@ -168,6 +168,9 @@ class TagDetector
   double blur_;
   int refine_edges_;
   int debug_;
+  int max_hamming_distance_ = 2;  // Tunable, but really, 2 is a good choice. Values of >=3
+                                  // consume prohibitively large amounts of memory, and otherwise
+                                  // you want the largest value possible.
 
   // AprilTag 2 objects
   apriltag_family_t *tf_;
@@ -181,7 +184,6 @@ class TagDetector
   bool run_quietly_;
   bool publish_tf_;
   tf::TransformBroadcaster tf_pub_;
-  std::string camera_tf_frame_;
 
  public:
 
@@ -231,6 +233,8 @@ class TagDetector
 
   // Draw the detected tags' outlines and payload values on the image
   void drawDetections(cv_bridge::CvImagePtr image);
+
+  bool get_publish_tf() const { return publish_tf_; }
 };
 
 } // namespace apriltag_ros

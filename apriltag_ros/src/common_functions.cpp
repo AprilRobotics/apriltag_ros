@@ -52,6 +52,7 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     blur_(getAprilTagOption<double>(pnh, "tag_blur", 0.0)),
     refine_edges_(getAprilTagOption<int>(pnh, "tag_refine_edges", 1)),
     debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
+    max_hamming_distance_(getAprilTagOption<int>(pnh, "max_hamming_dist", 2)),
     publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false))
 {
   // Parse standalone tag descriptions specified by user (stored on ROS
@@ -146,7 +147,7 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
 
   // Create the AprilTag 2 detector
   td_ = apriltag_detector_create();
-  apriltag_detector_add_family(td_, tf_);
+  apriltag_detector_add_family_bits(td_, tf_, max_hamming_distance_);
   td_->quad_decimate = (float)decimate_;
   td_->quad_sigma = (float)blur_;
   td_->nthreads = threads_;
@@ -154,13 +155,6 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   td_->refine_edges = refine_edges_;
 
   detections_ = NULL;
-
-  // Get tf frame name to use for the camera
-  if (!pnh.getParam("camera_frame", camera_tf_frame_))
-  {
-    ROS_WARN_STREAM("Camera frame not specified, using 'camera'");
-    camera_tf_frame_ = "camera";
-  }
 }
 
 // destructor
@@ -169,7 +163,10 @@ TagDetector::~TagDetector() {
   apriltag_detector_destroy(td_);
 
   // Free memory associated with the array of tag detections
-  apriltag_detections_destroy(detections_);
+  if(detections_)
+  {
+    apriltag_detections_destroy(detections_);
+  }
 
   // free memory associated with tag family
   if (family_ == "tagStandard52h13")
@@ -395,7 +392,7 @@ AprilTagDetectionArray TagDetector::detectTags (
       tf::poseStampedMsgToTF(pose, tag_transform);
       tf_pub_.sendTransform(tf::StampedTransform(tag_transform,
                                                  tag_transform.stamp_,
-                                                 camera_tf_frame_,
+                                                 image->header.frame_id,
                                                  detection_names[i]));
     }
   }
@@ -405,8 +402,8 @@ AprilTagDetectionArray TagDetector::detectTags (
 
 int TagDetector::idComparison (const void* first, const void* second)
 {
-  int id1 = ((apriltag_detection_t*) first)->id;
-  int id2 = ((apriltag_detection_t*) second)->id;
+  int id1 = (*(apriltag_detection_t**)first)->id;
+  int id2 = (*(apriltag_detection_t**)second)->id;
   return (id1 < id2) ? -1 : ((id1 == id2) ? 0 : 1);
 }
 
