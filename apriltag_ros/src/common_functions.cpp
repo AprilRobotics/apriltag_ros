@@ -419,22 +419,23 @@ void TagDetector::removeDuplicates ()
       // The entire detection set was parsed
       return;
     }
-    apriltag_detection_t *detection;
-    zarray_get(detections_, count, &detection);
-    int id_current = detection->id;
+    apriltag_detection_t *next_detection, *current_detection;
+    zarray_get(detections_, count, &current_detection);
+    int id_current = current_detection->id;
     // Default id_next value of -1 ensures that if the last detection
     // is a duplicated tag ID, it will get removed
     int id_next = -1;
     if (count < zarray_size(detections_)-1)
     {
-      zarray_get(detections_, count+1, &detection);
-      id_next = detection->id;
+      zarray_get(detections_, count+1, &next_detection);
+      id_next = next_detection->id;
     }
     if (id_current == id_next || (id_current != id_next && duplicate_detected))
     {
       duplicate_detected = true;
       // Remove the current tag detection from detections array
       int shuffle = 0;
+      apriltag_detection_destroy(current_detection);
       zarray_remove_index(detections_, count, shuffle);
       if (id_current != id_next)
       {
