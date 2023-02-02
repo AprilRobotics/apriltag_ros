@@ -231,6 +231,8 @@ AprilTagDetectionArray TagDetector::detectTags (
   double cx = camera_model.cx(); // optical center x-coordinate [px]
   double cy = camera_model.cy(); // optical center y-coordinate [px]
 
+  ROS_INFO_STREAM_ONCE("Camera model: fx = " << fx << ", fy = " << fy << ", cx = " << cx << ", cy = " << cy);
+
   // Check if camera intrinsics are not available - if not the calculated
   // transforms are meaningless.
   if (fx == 0 && fy == 0) ROS_WARN_STREAM_THROTTLE(5, "fx and fy are zero. Are the camera intrinsics set?");
