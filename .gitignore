@@ -1,3 +1,4 @@
 **/matlab_rosbag-0.5.0-linux64/
 **/*.bag
 .vscode/
+build/

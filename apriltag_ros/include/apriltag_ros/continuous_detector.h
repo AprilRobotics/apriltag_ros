@@ -46,8 +46,11 @@
 #include "apriltag_ros/common_functions.h"
 
 #include <memory>
+#include <mutex>
 
 #include <nodelet/nodelet.h>
+#include <ros/service_server.h>
+#include <std_srvs/Empty.h>
 
 namespace apriltag_ros
 {
