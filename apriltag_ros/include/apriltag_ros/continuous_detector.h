@@ -46,8 +46,11 @@
 #include "apriltag_ros/common_functions.h"
 
 #include <memory>
+#include <mutex>
 
 #include <nodelet/nodelet.h>
+#include <ros/service_server.h>
+#include <std_srvs/Empty.h>
 
 namespace apriltag_ros
 {
@@ -63,7 +66,10 @@ class ContinuousDetector: public nodelet::Nodelet
   void imageCallback(const sensor_msgs::ImageConstPtr& image_rect,
                      const sensor_msgs::CameraInfoConstPtr& camera_info);
 
+  void refreshTagParameters();
+
  private:
+  std::mutex detection_mutex_;
   std::shared_ptr<TagDetector> tag_detector_;
   bool draw_tag_detections_image_;
   cv_bridge::CvImagePtr cv_image_;
@@ -72,6 +78,9 @@ class ContinuousDetector: public nodelet::Nodelet
   image_transport::CameraSubscriber camera_image_subscriber_;
   image_transport::Publisher tag_detections_image_publisher_;
   ros::Publisher tag_detections_publisher_;
+
+  ros::ServiceServer refresh_params_service_;
+  bool refreshParamsCallback(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
 };
 
 } // namespace apriltag_ros
