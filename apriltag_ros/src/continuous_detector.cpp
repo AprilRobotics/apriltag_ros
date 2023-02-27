@@ -71,13 +71,12 @@ void ContinuousDetector::onInit ()
 
 void ContinuousDetector::refreshTagParameters()
 {
-  // Reseting the tag detector will cause a new param server lookup
-  // So if the parameters have changed (by someone/somehting), 
+  // Resetting the tag detector will cause a new param server lookup
+  // So if the parameters have changed (by someone/something), 
   // they will be updated dynamically
   std::scoped_lock<std::mutex> lock(detection_mutex_);
   ros::NodeHandle& pnh = getPrivateNodeHandle();
-  tag_detector_.reset();
-  tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
+  tag_detector_.reset(new TagDetector(pnh));
 }
 
 bool ContinuousDetector::refreshParamsCallback(std_srvs::Empty::Request& req,
