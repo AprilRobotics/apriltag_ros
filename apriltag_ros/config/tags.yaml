@@ -21,10 +21,6 @@
 #   ]
 standalone_tags:
   [
-    {id: 1, size: 0.16},
-    {id: 2, size: 0.16},
-    {id: 3, size: 0.16},
-    {id: 4, size: 0.16},
   ]
 # ## Tag bundle definitions
 # ### Remarks
@@ -49,13 +45,4 @@ standalone_tags:
 #   ]
 tag_bundles:
   [
-    {
-      name: 'triple_horizontal',
-      layout:
-        [
-          {id: 25, size: 0.16, x: 0, y: 0, z: 0, qw: 1, qx: 0, qy: 0, qz: 0},
-          {id: 26, size: 0.16, x: 0.2, y: 0, z: 0, qw: 1, qx: 0, qy: 0, qz: 0},
-          {id: 27, size: 0.16, x: -0.2, y: 0, z: 0, qw: 1, qx: 0, qy: 0, qz: 0},
-        ]
-    },
   ]
