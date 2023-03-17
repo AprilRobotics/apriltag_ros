@@ -145,7 +145,8 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     exit(1);
   }
 
-  if (threads_ == 0){
+  if (threads_ == 0)
+  {
     threads_ = std::max(std::thread::hardware_concurrency() - 1U, 1U);
     ROS_INFO("Thread count not specified. Using %d threads", threads_);
   }
