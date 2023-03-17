@@ -48,6 +48,7 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <thread>
 
 #include <ros/ros.h>
 #include <ros/console.h>
