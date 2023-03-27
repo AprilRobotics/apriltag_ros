@@ -47,7 +47,7 @@ namespace apriltag_ros
 
 TagDetector::TagDetector(ros::NodeHandle pnh) :
     family_(getAprilTagOption<std::string>(pnh, "tag_family", "tag36h11")),
-    threads_(getAprilTagOption<int>(pnh, "tag_threads", 4)),
+    threads_(getAprilTagOption<int>(pnh, "tag_threads", 0)),
     decimate_(getAprilTagOption<double>(pnh, "tag_decimate", 1.0)),
     blur_(getAprilTagOption<double>(pnh, "tag_blur", 0.0)),
     refine_edges_(getAprilTagOption<int>(pnh, "tag_refine_edges", 1)),
@@ -143,6 +143,12 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
   {
     ROS_WARN("Invalid tag family specified! Aborting");
     exit(1);
+  }
+
+  if (threads_ == 0)
+  {
+    threads_ = std::max(std::thread::hardware_concurrency() - 1U, 1U);
+    ROS_INFO("Thread count not specified. Using %d threads", threads_);
   }
 
   // Create the AprilTag 2 detector
