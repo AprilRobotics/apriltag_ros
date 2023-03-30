@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="apriltag_ros" type="apriltag_ros_calibration_bundle" name="calibration_bundle" clear_params="true" output="screen">
+    <param name="input_frame_count" type="int" value="500" />
+  </node>
+</launch>

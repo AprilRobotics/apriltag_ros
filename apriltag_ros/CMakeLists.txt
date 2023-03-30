@@ -114,6 +114,10 @@ target_link_libraries(${PROJECT_NAME}_continuous_detector ${PROJECT_NAME}_common
 add_library(${PROJECT_NAME}_single_image_detector src/single_image_detector.cpp)
 target_link_libraries(${PROJECT_NAME}_single_image_detector ${PROJECT_NAME}_common ${catkin_LIBRARIES})
 
+add_executable(${PROJECT_NAME}_calibration_bundle src/${PROJECT_NAME}_calibration_bundle.cpp)
+add_dependencies(${PROJECT_NAME}_calibration_bundle ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME}_calibration_bundle ${catkin_LIBRARIES})
+
 add_executable(${PROJECT_NAME}_continuous_node src/${PROJECT_NAME}_continuous_node.cpp)
 add_dependencies(${PROJECT_NAME}_continuous_node ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_continuous_node ${PROJECT_NAME}_continuous_detector ${catkin_LIBRARIES})
@@ -125,6 +129,8 @@ target_link_libraries(${PROJECT_NAME}_single_image_server_node ${PROJECT_NAME}_s
 add_executable(${PROJECT_NAME}_single_image_client_node src/${PROJECT_NAME}_single_image_client_node.cpp)
 add_dependencies(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_common ${catkin_LIBRARIES})
+
+
 
 
 #############
@@ -150,6 +156,7 @@ install(TARGETS
   ${PROJECT_NAME}_single_image_client_node
   ${PROJECT_NAME}_single_image_detector
   ${PROJECT_NAME}_single_image_server_node
+  ${PROJECT_NAME}_calibration_bundle
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
