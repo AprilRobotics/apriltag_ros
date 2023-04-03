@@ -352,6 +352,8 @@ AprilTagDetectionArray TagDetector::detectTags (
     tag_detection.pose = tag_pose;
     tag_detection.id.push_back(detection->id);
     tag_detection.size.push_back(tag_size);
+    // This pr chooses the distance limit to push detection array, default selection 1.4 meter.
+    if (tag_detection.pose.pose.pose.position.z < 1.4)
     tag_detection_array.detections.push_back(tag_detection);
     detection_names.push_back(standaloneDescription->frame_name());
   }
