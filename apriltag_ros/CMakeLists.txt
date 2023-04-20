@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tf
+  tf2
+  tf2_geometry_msgs
 )
 
 find_package(Eigen3 REQUIRED)
@@ -85,6 +87,8 @@ catkin_package(
     sensor_msgs
     std_msgs
     tf
+    tf2
+    tf2_geometry_msgs
   DEPENDS
     apriltag
     OpenCV
@@ -108,6 +112,9 @@ add_library(${PROJECT_NAME}_common src/common_functions.cpp)
 add_dependencies(${PROJECT_NAME}_common ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_common ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} apriltag::apriltag)
 
+add_library(${PROJECT_NAME}_tag_bundle_calibration src/tag_bundle_calibration.cpp)
+target_link_libraries(${PROJECT_NAME}_tag_bundle_calibration ${PROJECT_NAME}_common ${catkin_LIBRARIES})
+
 add_library(${PROJECT_NAME}_continuous_detector src/continuous_detector.cpp)
 target_link_libraries(${PROJECT_NAME}_continuous_detector ${PROJECT_NAME}_common ${catkin_LIBRARIES})
 
@@ -125,6 +132,10 @@ target_link_libraries(${PROJECT_NAME}_single_image_server_node ${PROJECT_NAME}_s
 add_executable(${PROJECT_NAME}_single_image_client_node src/${PROJECT_NAME}_single_image_client_node.cpp)
 add_dependencies(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_single_image_client_node ${PROJECT_NAME}_common ${catkin_LIBRARIES})
+
+add_executable(${PROJECT_NAME}_tag_bundle_calibration_node src/${PROJECT_NAME}_tag_bundle_calibration_node.cpp)
+add_dependencies(${PROJECT_NAME}_tag_bundle_calibration_node ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME}_tag_bundle_calibration_node ${PROJECT_NAME}_tag_bundle_calibration ${catkin_LIBRARIES})
 
 
 #############
@@ -145,6 +156,7 @@ install(FILES nodelet_plugins.xml
 
 install(TARGETS
   ${PROJECT_NAME}_common
+  ${PROJECT_NAME}_tag_bundle_calibration
   ${PROJECT_NAME}_continuous_detector
   ${PROJECT_NAME}_continuous_node
   ${PROJECT_NAME}_single_image_client_node
