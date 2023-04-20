@@ -1,0 +1,15 @@
+<launch>    
+    <arg name="tag_detection_topic" default="/tag_detections"/>
+    <arg name="max_detections" default="500"/>
+    <arg name="config_file_path" default="/tmp/tag_bundle_calibration.yaml"/>
+    <arg name="tag_bundle_name" default="tag_bundle"/>
+    <arg name="master_tag_id" default="0"/>
+
+    <node pkg="apriltag_ros" type="apriltag_ros_tag_bundle_calibration_node" name="apriltag_ros_tag_bundle_calibration_node" output="screen">
+        <remap from="~tag_detections" to="$(arg tag_detection_topic)"/>
+        <param name="max_detections" value="$(arg max_detections)"/>
+        <param name="config_file_path" value="$(arg config_file_path)"/>
+        <param name="tag_bundle_name" value="$(arg tag_bundle_name)"/>
+        <param name="master_tag_id" value="$(arg master_tag_id)"/>
+    </node>
+</launch>

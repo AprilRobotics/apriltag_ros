@@ -148,8 +148,7 @@ void writeToYaml(const std::unordered_map<int, geometry_msgs::Pose>& tag_poses_i
 } // namespace detail
 
 // TagBundleCalibrationNode class
-TagBundleCalibrationNode::TagBundleCalibrationNode(ros::NodeHandle& nh,
-                                                   int max_detections,
+TagBundleCalibrationNode::TagBundleCalibrationNode(int max_detections,
                                                    const std::string& config_file_path,
                                                    const std::string& tag_bundle_name,
                                                    int master_tag_id) :
@@ -159,8 +158,9 @@ TagBundleCalibrationNode::TagBundleCalibrationNode(ros::NodeHandle& nh,
     master_tag_id_(master_tag_id),
     received_detections_(0)
 {
+  ros::NodeHandle pnh{"~"};
   tag_detection_sub_ =
-      nh.subscribe("tag_detection", 1, &TagBundleCalibrationNode::tagDetectionCallback, this);
+      pnh.subscribe("tag_detections", 1, &TagBundleCalibrationNode::tagDetectionCallback, this);
 }
 
 void TagBundleCalibrationNode::tagDetectionCallback(

@@ -19,7 +19,7 @@ int main(int argc, char** argv)
 
   // Create the node
   apriltag_ros::TagBundleCalibrationNode node(
-      nh, max_detections, config_file_path, tag_bundle_name, master_tag_id);
+      max_detections, config_file_path, tag_bundle_name, master_tag_id);
 
   ros::spin();
   return 0;

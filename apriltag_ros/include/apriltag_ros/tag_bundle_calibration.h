@@ -37,8 +37,7 @@ void writeToYaml(const std::unordered_map<int, geometry_msgs::Pose>& tag_poses_i
 class TagBundleCalibrationNode
 {
 public:
-  TagBundleCalibrationNode(ros::NodeHandle& nh,
-                           int max_detections,
+  TagBundleCalibrationNode(int max_detections,
                            const std::string& config_file_path,
                            const std::string& tag_bundle_name,
                            int master_tag_id);
