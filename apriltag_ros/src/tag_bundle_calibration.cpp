@@ -2,102 +2,6 @@
 
 namespace apriltag_ros
 {
-
-namespace detail
-{
-geometry_msgs::Pose averagePoses(const std::vector<geometry_msgs::Pose>& poses)
-{
-  geometry_msgs::Pose ret;
-
-  if (poses.empty())
-    return ret;
-
-  // Averaging positions
-  double sz = static_cast<double>(poses.size());
-  geometry_msgs::Point init_position;
-  geometry_msgs::Point avg_position =
-      std::accumulate(poses.begin(),
-                      poses.end(),
-                      init_position,
-                      [sz](geometry_msgs::Point& accum, const geometry_msgs::Pose& curr)
-                      {
-                        accum.x += curr.position.x / sz;
-                        accum.y += curr.position.y / sz;
-                        accum.z += curr.position.z / sz;
-                        return accum;
-                      });
-
-  ret.position = avg_position;
-
-  // Averaging orientations
-  // https://math.stackexchange.com/questions/61146/averaging-quaternions/3435296#3435296
-  tf2::Quaternion init_quat{0.0, 0.0, 0.0, 0.0};
-  tf2::Quaternion first_quat, curr_quat;
-  tf2::fromMsg(poses[0].orientation, first_quat);
-
-  auto avg_quat_approx = std::accumulate(
-      poses.begin(),
-      poses.end(),
-      init_quat,
-      [&first_quat, &curr_quat](tf2::Quaternion& accum, const geometry_msgs::Pose& curr)
-      {
-        tf2::fromMsg(curr.orientation, curr_quat);
-        double weight = curr_quat.dot(first_quat) > 0.0 ? 1.0 : -1.0;
-        return accum + tf2::Quaternion(weight * curr_quat.x(),
-                                       weight * curr_quat.y(),
-                                       weight * curr_quat.z(),
-                                       weight * curr_quat.w());
-      });
-
-  ret.orientation = tf2::toMsg(avg_quat_approx.normalize());
-
-  return ret;
-}
-
-void writeToYaml(const std::unordered_map<int, geometry_msgs::Pose>& tag_poses_in_master_frame,
-                 const std::unordered_map<int, double>& tag_size_map,
-                 const std::string& tag_bundle_name,
-                 std::ostream& os)
-{
-  // Create a vector of constant references to the elements in tag_poses_in_master_frame
-  std::vector<std::reference_wrapper<const std::pair<const int, geometry_msgs::Pose>>> sorted_tags(
-      tag_poses_in_master_frame.begin(), tag_poses_in_master_frame.end());
-
-  // Sort the vector by ascending tag ID
-  std::sort(sorted_tags.begin(),
-            sorted_tags.end(),
-            [](const auto& a, const auto& b) { return a.get().first < b.get().first; });
-
-  os << "standalone_tags:\n";
-  os << "  [\n";
-  os << "  ]\n";
-  os << "tag_bundles:\n";
-  os << "  [\n";
-  os << "    {\n";
-  os << "      name: '" << tag_bundle_name << "',\n";
-  os << "      layout:\n";
-  os << "        [\n";
-
-  for (const auto& tag_entry_ref : sorted_tags)
-  {
-    const auto& tag_entry = tag_entry_ref.get();
-    int tag_id = tag_entry.first;
-    const geometry_msgs::Pose& pose = tag_entry.second;
-    double size = tag_size_map.at(tag_id);
-    os << "          {id: " << tag_id << ", size: " << size << ", x: " << pose.position.x
-       << ", y: " << pose.position.y << ", z: " << pose.position.z << ", qw: " << pose.orientation.w
-       << ", qx: " << pose.orientation.x << ", qy: " << pose.orientation.y
-       << ", qz: " << pose.orientation.z << "},\n";
-  }
-
-  os << "        ]\n";
-  os << "    }\n";
-  os << "  ]\n";
-}
-
-} // namespace detail
-
-// TagBundleCalibrationNode class
 TagBundleCalibrationNode::TagBundleCalibrationNode(int max_detections,
                                                    const std::string& config_file_path,
                                                    const std::string& tag_bundle_name,
@@ -196,9 +100,51 @@ void TagBundleCalibrationNode::tagDetectionCallback(
       ros::shutdown();
       return;
     }
-    detail::writeToYaml(tags_in_master_frame_, tag_size_map_, tag_bundle_name_, ofs);
+    writeToYaml(tags_in_master_frame_, tag_size_map_, tag_bundle_name_, ofs);
     ros::shutdown();
   }
+}
+
+void TagBundleCalibrationNode::writeToYaml(
+    const std::unordered_map<int, geometry_msgs::Pose>& tag_poses_in_master_frame,
+    const std::unordered_map<int, double>& tag_size_map,
+    const std::string& tag_bundle_name,
+    std::ostream& os)
+{
+  // Create a vector of constant references to the elements in tag_poses_in_master_frame
+  std::vector<std::reference_wrapper<const std::pair<const int, geometry_msgs::Pose>>> sorted_tags(
+      tag_poses_in_master_frame.begin(), tag_poses_in_master_frame.end());
+
+  // Sort the vector by ascending tag ID
+  std::sort(sorted_tags.begin(),
+            sorted_tags.end(),
+            [](const auto& a, const auto& b) { return a.get().first < b.get().first; });
+
+  os << "standalone_tags:\n";
+  os << "  [\n";
+  os << "  ]\n";
+  os << "tag_bundles:\n";
+  os << "  [\n";
+  os << "    {\n";
+  os << "      name: '" << tag_bundle_name << "',\n";
+  os << "      layout:\n";
+  os << "        [\n";
+
+  for (const auto& tag_entry_ref : sorted_tags)
+  {
+    const auto& tag_entry = tag_entry_ref.get();
+    int tag_id = tag_entry.first;
+    const geometry_msgs::Pose& pose = tag_entry.second;
+    double size = tag_size_map.at(tag_id);
+    os << "          {id: " << tag_id << ", size: " << size << ", x: " << pose.position.x
+       << ", y: " << pose.position.y << ", z: " << pose.position.z << ", qw: " << pose.orientation.w
+       << ", qx: " << pose.orientation.x << ", qy: " << pose.orientation.y
+       << ", qz: " << pose.orientation.z << "},\n";
+  }
+
+  os << "        ]\n";
+  os << "    }\n";
+  os << "  ]\n";
 }
 
 } // namespace apriltag_ros

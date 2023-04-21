@@ -18,16 +18,6 @@
 
 namespace apriltag_ros
 {
-namespace detail
-{
-
-geometry_msgs::Pose averagePoses(const std::vector<geometry_msgs::Pose>& poses);
-void writeToYaml(const std::unordered_map<int, geometry_msgs::Pose>& tag_poses_in_master_frame,
-                 const std::unordered_map<int, double>& tag_size_map,
-                 const std::string& tag_bundle_name,
-                 std::ostream& os);
-} // namespace detail
-
 class TagBundleCalibrationNode
 {
 public:
@@ -38,6 +28,11 @@ public:
 
 private:
   void tagDetectionCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg);
+
+  void writeToYaml(const std::unordered_map<int, geometry_msgs::Pose>& tag_poses_in_master_frame,
+                   const std::unordered_map<int, double>& tag_size_map,
+                   const std::string& tag_bundle_name,
+                   std::ostream& os);
 
   ros::Subscriber tag_detection_sub_;
   int max_detections_;
