@@ -3,11 +3,10 @@
 
 int main(int argc, char** argv)
 {
-  // Initialize the node and create a NodeHandle
   ros::init(argc, argv, "tag_bundle_calibration_node");
   ros::NodeHandle nh{"~"};
 
-  // Read the parameters
+  // Read params
   int max_detections;
   std::string config_file_path;
   std::string tag_bundle_name;
@@ -17,7 +16,6 @@ int main(int argc, char** argv)
   nh.param("tag_bundle_name", tag_bundle_name, std::string("tag_bundle"));
   nh.param("master_tag_id", master_tag_id, 0);
 
-  // Create the node
   apriltag_ros::TagBundleCalibrationNode node(
       max_detections, config_file_path, tag_bundle_name, master_tag_id);
 
