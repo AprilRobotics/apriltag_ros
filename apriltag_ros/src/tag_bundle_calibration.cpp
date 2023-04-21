@@ -27,6 +27,7 @@ TagBundleCalibrationNode::TagBundleCalibrationNode(int max_detections,
 void TagBundleCalibrationNode::tagDetectionCallback(
     const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg)
 {
+  ROS_INFO_ONCE("Processing tag detections...");
   std::unordered_map<int, geometry_msgs::Pose> curr_tag_poses_in_cam_frame;
 
   for (const auto& tag_detection : msg->detections)
@@ -109,7 +110,7 @@ void TagBundleCalibrationNode::writeToYaml(
     const std::unordered_map<int, geometry_msgs::Pose>& tag_poses_in_master_frame,
     const std::unordered_map<int, double>& tag_size_map,
     const std::string& tag_bundle_name,
-    std::ostream& os)
+    std::ostream& os) const
 {
   // Create a vector of constant references to the elements in tag_poses_in_master_frame
   std::vector<std::reference_wrapper<const std::pair<const int, geometry_msgs::Pose>>> sorted_tags(

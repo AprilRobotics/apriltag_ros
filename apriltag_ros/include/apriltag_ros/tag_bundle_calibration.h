@@ -32,7 +32,7 @@ private:
   void writeToYaml(const std::unordered_map<int, geometry_msgs::Pose>& tag_poses_in_master_frame,
                    const std::unordered_map<int, double>& tag_size_map,
                    const std::string& tag_bundle_name,
-                   std::ostream& os);
+                   std::ostream& os) const;
 
   ros::Subscriber tag_detection_sub_;
   int max_detections_;
