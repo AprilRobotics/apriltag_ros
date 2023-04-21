@@ -5,7 +5,7 @@ int main(int argc, char** argv)
 {
   // Initialize the node and create a NodeHandle
   ros::init(argc, argv, "tag_bundle_calibration_node");
-  ros::NodeHandle nh;
+  ros::NodeHandle nh{"~"};
 
   // Read the parameters
   int max_detections;

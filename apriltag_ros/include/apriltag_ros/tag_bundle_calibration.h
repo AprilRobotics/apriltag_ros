@@ -18,12 +18,6 @@
 
 namespace apriltag_ros
 {
-void generateTagBundleConfig(
-    std::ostream& os,
-    const std::unordered_map<int, std::vector<AprilTagDetection>>& tag_buffer_map,
-    const std::string tag_bundle_name,
-    const int master_tag_id);
-
 namespace detail
 {
 
@@ -42,10 +36,8 @@ public:
                            const std::string& tag_bundle_name,
                            int master_tag_id);
 
-  void tagDetectionCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg);
-
 private:
-  void performCalibrationAndWriteToFile();
+  void tagDetectionCallback(const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg);
 
   ros::Subscriber tag_detection_sub_;
   int max_detections_;
@@ -53,7 +45,8 @@ private:
   std::string tag_bundle_name_;
   int master_tag_id_;
   int received_detections_;
-  std::unordered_map<int, std::vector<apriltag_ros::AprilTagDetection>> tag_buffer_map_;
+  std::unordered_map<int, geometry_msgs::Pose> tags_in_master_frame_;
+  std::unordered_map<int, double> tag_size_map_;
 };
 
 } // namespace apriltag_ros
