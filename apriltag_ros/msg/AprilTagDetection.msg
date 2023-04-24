@@ -1,3 +1,6 @@
+# Tag/Tag Bundle name. Default names are tag_ID, where ID is the tag ID and bundle_I 
+# where I is the bundle index.
+string name
 # Tag ID(s). If a standalone tag, this is a vector of size 1. If a tag bundle,
 # this is a vector containing the IDs of each tag in the bundle.
 int32[] id
