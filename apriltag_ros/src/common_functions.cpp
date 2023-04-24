@@ -383,6 +383,7 @@ AprilTagDetectionArray TagDetector::detectTags (
 
       // Add the detection to the back of the tag detection array
       AprilTagDetection tag_detection;
+      tag_detection.name = bundleName;
       tag_detection.pose = bundle_pose;
       tag_detection.id = bundle.bundleIds();
       tag_detection.size = bundle.bundleSizes();
