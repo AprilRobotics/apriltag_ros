@@ -27,11 +27,17 @@ TagBundleCalibrationNode::TagBundleCalibrationNode(int max_detections,
 void TagBundleCalibrationNode::tagDetectionCallback(
     const apriltag_ros::AprilTagDetectionArray::ConstPtr& msg)
 {
+  if (msg->detections.empty())
+    return;
+  
   ROS_INFO_ONCE("Processing tag detections...");
   std::unordered_map<int, geometry_msgs::Pose> curr_tag_poses_in_cam_frame;
 
   for (const auto& tag_detection : msg->detections)
   {
+    // Don't try to calibrate on tag bundle detections
+    if (tag_detection.id.size() > 1)
+      return;
     int tag_id = tag_detection.id[0];
     double tag_size = tag_detection.size[0];
     geometry_msgs::Pose tag_pose_in_master_frame = tag_detection.pose.pose.pose;
@@ -91,6 +97,9 @@ void TagBundleCalibrationNode::tagDetectionCallback(
   }
 
   received_detections_++;
+
+  ROS_INFO_STREAM_THROTTLE(1.0, received_detections_ << " of " << max_detections_
+                                                     << " detections complete.");
 
   if (received_detections_ >= max_detections_)
   {
