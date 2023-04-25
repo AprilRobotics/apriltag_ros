@@ -58,8 +58,11 @@ void TagBundleCalibrationNode::tagDetectionCallback(
   tf2::fromMsg(master_tag_pose, master_tag_tf);
 
   // init the master tag pose if it is not already in the map
-  if (tags_in_master_frame_.find(master_tag_id_) == tags_in_master_frame_.end())
-    tags_in_master_frame_[master_tag_id_] = geometry_msgs::Pose{};
+  if (tags_in_master_frame_.find(master_tag_id_) == tags_in_master_frame_.end()) {
+    geometry_msgs::Pose origin{};
+    origin.orientation.w = 1.0;
+    tags_in_master_frame_[master_tag_id_] = origin;
+  }
 
   for (auto& tag_pose_kv : curr_tag_poses_in_cam_frame)
   {
