@@ -7,11 +7,10 @@
 
 import os
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node, SetParameter, PushRosNamespace
+from launch_ros.actions import Node, SetParameter
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.substitutions import LaunchConfiguration
 
 PACKAGE_NAME = 'apriltag_ros'
 
