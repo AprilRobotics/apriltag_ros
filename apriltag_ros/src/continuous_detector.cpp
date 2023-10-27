@@ -29,102 +29,84 @@
  * Technology.
  */
 
-#include "apriltag_ros/continuous_detector.h"
+#include "atlas_apriltag_ros/continuous_detector.hpp"
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
-#include <pluginlib/class_list_macros.hpp>
 
-PLUGINLIB_EXPORT_CLASS(apriltag_ros::ContinuousDetector, nodelet::Nodelet);
+using namespace atlas_apriltag_ros;
 
-namespace apriltag_ros
+ContinuousDetector::ContinuousDetector(const rclcpp::NodeOptions & options)
+: nh_(std::make_shared<rclcpp::Node>("apriltag_node", options)), custom_qos_(1)
 {
-void ContinuousDetector::onInit ()
-{
-  ros::NodeHandle& nh = getNodeHandle();
-  ros::NodeHandle& pnh = getPrivateNodeHandle();
+    rclcpp::uninstall_signal_handlers();
 
-  tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
-  draw_tag_detections_image_ = getAprilTagOption<bool>(pnh, 
-      "publish_tag_detections_image", false);
-  it_ = std::shared_ptr<image_transport::ImageTransport>(
-      new image_transport::ImageTransport(nh));
+    // Declare and get parameters
+    draw_tag_detections_image_ = nh_->declare_parameter<bool>("publish_tag_detections_image", false);
+    std::string tag_detections_image_topic = nh_->declare_parameter<std::string>("tag_detections_image_topic", "tag_detections_image");
+    std::string image_topic = nh_->declare_parameter<std::string>("image_topic", "color/image_raw");
+    int queue_size = nh_->declare_parameter<int>("queue_size", 1);
+    std::string tag_detections_topic = nh_->declare_parameter<std::string>("tag_detections_topic", "tag_detections");
+    
+    tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(nh_));
 
-  std::string transport_hint;
-  pnh.param<std::string>("transport_hint", transport_hint, "raw");
 
-  int queue_size;
-  pnh.param<int>("queue_size", queue_size, 1);
-  camera_image_subscriber_ =
-      it_->subscribeCamera("image_rect", queue_size,
-                          &ContinuousDetector::imageCallback, this,
-                          image_transport::TransportHints(transport_hint));
-  tag_detections_publisher_ =
-      nh.advertise<AprilTagDetectionArray>("tag_detections", 1);
-  if (draw_tag_detections_image_)
-  {
-    tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
-  }
+    // Image_transport
+    it_ = std::shared_ptr<image_transport::ImageTransport>(
+        new image_transport::ImageTransport(nh_));
 
-  refresh_params_service_ =
-      pnh.advertiseService("refresh_tag_params", 
-                          &ContinuousDetector::refreshParamsCallback, this);
+    camera_image_subscriber_ = it_->subscribeCamera(image_topic, queue_size,
+                            &ContinuousDetector::ImageCallback, this,
+                            new image_transport::TransportHints(nh_.get(), "raw", "transport_hint"));
+
+    tag_detections_publisher_ = nh_->create_publisher<ageve_interfaces::msg::AprilTagDetectionArray>(tag_detections_topic, 10);
+
+    if (draw_tag_detections_image_)
+    {
+        tag_detections_image_publisher_ = it_->advertise(tag_detections_image_topic, 1);
+    }
+
 }
 
-void ContinuousDetector::refreshTagParameters()
+
+void ContinuousDetector::ImageCallback (
+    const sensor_msgs::msg::Image::ConstSharedPtr& image_rect,
+    const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info)
 {
-  // Resetting the tag detector will cause a new param server lookup
-  // So if the parameters have changed (by someone/something), 
-  // they will be updated dynamically
-  std::scoped_lock<std::mutex> lock(detection_mutex_);
-  ros::NodeHandle& pnh = getPrivateNodeHandle();
-  tag_detector_.reset(new TagDetector(pnh));
+    // Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
+    // AprilTag 2 on the iamge
+    try
+    {
+        cv_image_ = cv_bridge::toCvCopy(image_rect, image_rect->encoding);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+        RCLCPP_ERROR(nh_->get_logger(), "cv_bridge exception: %s", e.what());
+        return;
+    }
+
+    // Publish detected tags in the image by AprilTag 2
+    tag_detections_publisher_->publish(
+        tag_detector_->detectTags(cv_image_,camera_info));
+
+    // Publish the camera image overlaid by outlines of the detected tags and
+    // their payload values
+    if (draw_tag_detections_image_)
+    {
+        tag_detector_->drawDetections(cv_image_);
+        tag_detections_image_publisher_.publish(cv_image_->toImageMsg());
+    }
 }
 
-bool ContinuousDetector::refreshParamsCallback(std_srvs::Empty::Request& req,
-                                               std_srvs::Empty::Response& res)
+rclcpp::node_interfaces::NodeBaseInterface::SharedPtr
+ContinuousDetector::get_node_base_interface() const
 {
-  refreshTagParameters();
-  return true;
+    return this->nh_->get_node_base_interface();
 }
 
-void ContinuousDetector::imageCallback (
-    const sensor_msgs::ImageConstPtr& image_rect,
-    const sensor_msgs::CameraInfoConstPtr& camera_info)
-{
-  std::scoped_lock<std::mutex> lock(detection_mutex_);
-  // Lazy updates:
-  // When there are no subscribers _and_ when tf is not published,
-  // skip detection.
-  if (tag_detections_publisher_.getNumSubscribers() == 0 &&
-      tag_detections_image_publisher_.getNumSubscribers() == 0 &&
-      !tag_detector_->get_publish_tf())
-  {
-    // ROS_INFO_STREAM("No subscribers and no tf publishing, skip processing.");
-    return;
-  }
 
-  // Convert ROS's sensor_msgs::Image to cv_bridge::CvImagePtr in order to run
-  // AprilTag 2 on the iamge
-  try
-  {
-    cv_image_ = cv_bridge::toCvCopy(image_rect, image_rect->encoding);
-  }
-  catch (cv_bridge::Exception& e)
-  {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
-  }
+#include "rclcpp_components/register_node_macro.hpp"
 
-  // Publish detected tags in the image by AprilTag 2
-  tag_detections_publisher_.publish(
-      tag_detector_->detectTags(cv_image_,camera_info));
-
-  // Publish the camera image overlaid by outlines of the detected tags and
-  // their payload values
-  if (draw_tag_detections_image_)
-  {
-    tag_detector_->drawDetections(cv_image_);
-    tag_detections_image_publisher_.publish(cv_image_->toImageMsg());
-  }
-}
-
-} // namespace apriltag_ros
+// Register the component with class_loader.
+// This acts as a sort of entry point, allowing the component to be discoverable when its library
+// is being loaded into a running process.
+RCLCPP_COMPONENTS_REGISTER_NODE(atlas_apriltag_ros::ContinuousDetector)
