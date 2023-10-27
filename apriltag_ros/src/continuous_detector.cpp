@@ -29,11 +29,11 @@
  * Technology.
  */
 
-#include "atlas_apriltag_ros/continuous_detector.hpp"
+#include "apriltag_ros/continuous_detector.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 
-using namespace atlas_apriltag_ros;
+using namespace apriltag_ros;
 
 ContinuousDetector::ContinuousDetector(const rclcpp::NodeOptions & options)
 : nh_(std::make_shared<rclcpp::Node>("apriltag_node", options)), custom_qos_(1)
@@ -109,4 +109,4 @@ ContinuousDetector::get_node_base_interface() const
 // Register the component with class_loader.
 // This acts as a sort of entry point, allowing the component to be discoverable when its library
 // is being loaded into a running process.
-RCLCPP_COMPONENTS_REGISTER_NODE(atlas_apriltag_ros::ContinuousDetector)
+RCLCPP_COMPONENTS_REGISTER_NODE(apriltag_ros::ContinuousDetector)

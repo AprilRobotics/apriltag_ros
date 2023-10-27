@@ -13,7 +13,7 @@ from launch.actions import DeclareLaunchArgument, GroupAction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 
-PACKAGE_NAME = 'atlas_apriltag_ros'
+PACKAGE_NAME = 'apriltag_ros'
 
 def generate_launch_description():
     # Configs files
@@ -27,57 +27,26 @@ def generate_launch_description():
         choices=['True', 'False'],
         description='Parameter use_sim_time')
 
-    valgrind_arg = DeclareLaunchArgument(
-        name='valgrind', 
-        default_value='False', 
-        choices=['True', 'False'],
-        description='Debug with valgrind')
-
     # Launch arguments
     sim_time = LaunchConfiguration('use_sim_time')
-    valgrind = LaunchConfiguration('valgrind')
-
-    remaps=[
-        ('/tf', 'tf'),
-        ('/tf_static', 'tf_static')
-    ]
 
     # Nodes to launch
     node = Node(
         package=PACKAGE_NAME,
-        executable='ContinuousDetector',
+        executable='ContinuousDetector', # Other option SingleDetector
         arguments=['--ros-args', '--log-level', 'info'],
         parameters=[config_file],
-        remappings=remaps,
         output="screen",
         emulate_tty=True,
-        condition=IfCondition(PythonExpression(['not ', valgrind]))
-    )
-    
-    node_with_valgrind = Node(
-        package=PACKAGE_NAME,
-        executable='ContinuousDetector',
-        arguments=['--ros-args', '--log-level', 'info'],
-        prefix=["valgrind --leak-check=yes -s"],
-        parameters=[config_file],
-        remappings=remaps,
-        output="screen",
-        emulate_tty=True,
-        condition=IfCondition(valgrind)
     )
 
     return LaunchDescription([
         GroupAction(
             actions=[
-                PushRosNamespace(
-                    os.getenv('ATLAS_NAMESPACE') if 'ATLAS_NAMESPACE' in os.environ.keys() else ""
-                ),
                 sim_time_arg,
-                valgrind_arg,
                 SetParameter("use_sim_time", sim_time),
                 SetParameter("tags_yaml_path", tags_config_file),
-                node,
-                node_with_valgrind
+                node
             ]
         )
     ])

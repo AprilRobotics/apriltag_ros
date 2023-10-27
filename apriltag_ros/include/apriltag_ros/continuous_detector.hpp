@@ -47,8 +47,8 @@
 #include <memory>
 #include <mutex>
 
-#include "atlas_apriltag_ros/common_functions.hpp"
-#include "atlas_apriltag_ros/composition_visibility.h"
+#include "apriltag_ros/common_functions.hpp"
+#include "apriltag_ros/composition_visibility.h"
 
 #include <rclcpp/rclcpp.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -58,7 +58,7 @@
 #include "ageve_interfaces/msg/april_tag_detection.hpp"
 #include "ageve_interfaces/msg/april_tag_detection_array.hpp"
 
-namespace atlas_apriltag_ros
+namespace apriltag_ros
 {
 
 class ContinuousDetector
@@ -89,6 +89,6 @@ class ContinuousDetector
 
 };
 
-} // namespace atlas_apriltag_ros
+} // namespace apriltag_ros
 
 #endif // ATLAS_APRILTAG_ROS_CONTINUOUS_DETECTOR_H

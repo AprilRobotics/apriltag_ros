@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(atlas_apriltag_ros)
+project(apriltag_ros)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -93,8 +93,8 @@ ament_target_dependencies(atlas_apriltag_ros_component
                           geometry_msgs
                           )
 
-rclcpp_components_register_node(atlas_apriltag_ros_component PLUGIN "atlas_apriltag_ros::ContinuousDetector" EXECUTABLE ContinuousDetector)
-set(node_plugins "${node_plugins}atlas_apriltag_ros::ContinuousDetector;$<TARGET_FILE:atlas_apriltag_ros_component>\n")
+rclcpp_components_register_node(atlas_apriltag_ros_component PLUGIN "apriltag_ros::ContinuousDetector" EXECUTABLE ContinuousDetector)
+set(node_plugins "${node_plugins}apriltag_ros::ContinuousDetector;$<TARGET_FILE:atlas_apriltag_ros_component>\n")
 
 # since the package installs libraries without exporting them
 # it needs to make sure that the library path is being exported

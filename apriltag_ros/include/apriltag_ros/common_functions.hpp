@@ -82,7 +82,7 @@
 #include "yaml-cpp/yaml.h"
 
 
-namespace atlas_apriltag_ros
+namespace apriltag_ros
 {
 
 // Stores the properties of a tag member of a bundle
@@ -240,6 +240,6 @@ class TagDetector
 
 };
 
-} // namespace atlas_apriltag_ros
+} // namespace apriltag_ros
 
 #endif // ATLAS_APRILTAG_ROS_COMMON_FUNCTIONS_H

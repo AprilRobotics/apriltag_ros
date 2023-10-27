@@ -29,7 +29,7 @@
  * Technology.
  */
 
-#include "atlas_apriltag_ros/common_functions.hpp"
+#include "apriltag_ros/common_functions.hpp"
 #include "image_geometry/pinhole_camera_model.h"
 
 #include "apriltag/common/homography.h"
@@ -42,7 +42,7 @@
 #include "apriltag/tagCircle21h7.h"
 #include "apriltag/tagCircle49h12.h"
 
-using namespace atlas_apriltag_ros;
+using namespace apriltag_ros;
 
 
 TagDetector::TagDetector(rclcpp::Node::SharedPtr nh)
