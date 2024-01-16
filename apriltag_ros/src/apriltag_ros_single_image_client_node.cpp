@@ -29,8 +29,8 @@
  * Technology.
  */
 
-#include "apriltag_ros/common_functions.h"
-#include <apriltag_ros/AnalyzeSingleImage.h>
+#include "apriltag_ros/common_functions.hpp"
+#include "apriltag_ros_interfaces/srv/analyze_single_image.hpp"
 
 bool getRosParameter (ros::NodeHandle& pnh, std::string name, double& param)
 {

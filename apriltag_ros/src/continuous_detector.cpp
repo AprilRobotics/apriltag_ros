@@ -58,7 +58,7 @@ ContinuousDetector::ContinuousDetector(const rclcpp::NodeOptions & options)
                             &ContinuousDetector::ImageCallback, this,
                             new image_transport::TransportHints(nh_.get(), "raw", "transport_hint"));
 
-    tag_detections_publisher_ = nh_->create_publisher<ageve_interfaces::msg::AprilTagDetectionArray>(tag_detections_topic, 10);
+    tag_detections_publisher_ = nh_->create_publisher<apriltag_ros_interfaces::msg::AprilTagDetectionArray>(tag_detections_topic, 10);
 
     if (draw_tag_detections_image_)
     {

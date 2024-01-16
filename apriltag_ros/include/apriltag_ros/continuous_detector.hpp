@@ -55,8 +55,8 @@
 #include <image_transport/image_transport.hpp>
 
 // Own
-#include "ageve_interfaces/msg/april_tag_detection.hpp"
-#include "ageve_interfaces/msg/april_tag_detection_array.hpp"
+#include "apriltag_ros_interfaces/msg/april_tag_detection.hpp"
+#include "apriltag_ros_interfaces/msg/april_tag_detection_array.hpp"
 
 namespace apriltag_ros
 {
@@ -85,7 +85,7 @@ class ContinuousDetector
         std::shared_ptr<image_transport::ImageTransport> it_;
         image_transport::CameraSubscriber camera_image_subscriber_;
         image_transport::Publisher tag_detections_image_publisher_;
-        rclcpp::Publisher<ageve_interfaces::msg::AprilTagDetectionArray>::SharedPtr tag_detections_publisher_;
+        rclcpp::Publisher<apriltag_ros_interfaces::msg::AprilTagDetectionArray>::SharedPtr tag_detections_publisher_;
 
 };
 

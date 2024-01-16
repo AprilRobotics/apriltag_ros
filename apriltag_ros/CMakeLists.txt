@@ -19,11 +19,12 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(ageve_interfaces REQUIRED)
+find_package(apriltag_ros_interfaces REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2 REQUIRED)
@@ -33,12 +34,10 @@ find_package(OpenCV REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(image_geometry REQUIRED)
 
-
-
 set(dependencies
   rclcpp
   rclcpp_components
-  ageve_interfaces
+  apriltag_ros_interfaces
   cv_bridge
   image_transport
   rcutils
@@ -51,6 +50,7 @@ set(dependencies
   image_geometry
   yaml-cpp
   geometry_msgs
+  std_msgs
 )
 
 
@@ -62,23 +62,22 @@ include_directories(
 # create ament index resource which references the libraries in the binary dir
 set(node_plugins "")  
 
-
-
 # Add cpp libraries
-add_library(atlas_apriltag_ros_component SHARED
+add_library(${PROJECT_NAME} SHARED
   "src/continuous_detector.cpp"
+  "src/single_image_detector.cpp"
   "src/common_functions.cpp"
 )
 
-target_link_libraries(atlas_apriltag_ros_component yaml-cpp apriltag)
+target_link_libraries(${PROJECT_NAME} yaml-cpp apriltag)
 
-target_compile_definitions(atlas_apriltag_ros_component
+target_compile_definitions(${PROJECT_NAME}
                            PRIVATE "COMPOSITION_BUILDING_DLL")
 
-ament_target_dependencies(atlas_apriltag_ros_component
+ament_target_dependencies(${PROJECT_NAME}
                           rclcpp
                           rclcpp_components
-                          ageve_interfaces
+                          apriltag_ros_interfaces
                           cv_bridge
                           image_transport
                           rcutils
@@ -91,10 +90,14 @@ ament_target_dependencies(atlas_apriltag_ros_component
                           image_geometry
                           yaml-cpp
                           geometry_msgs
+                          std_msgs
                           )
 
-rclcpp_components_register_node(atlas_apriltag_ros_component PLUGIN "apriltag_ros::ContinuousDetector" EXECUTABLE ContinuousDetector)
-set(node_plugins "${node_plugins}apriltag_ros::ContinuousDetector;$<TARGET_FILE:atlas_apriltag_ros_component>\n")
+rclcpp_components_register_node(${PROJECT_NAME} PLUGIN "apriltag_ros::ContinuousDetector" EXECUTABLE ContinuousDetector)
+set(node_plugins "${node_plugins}apriltag_ros::ContinuousDetector;$<TARGET_FILE:${PROJECT_NAME}>\n")
+
+rclcpp_components_register_node(${PROJECT_NAME} PLUGIN "apriltag_ros::SingleImageDetector" EXECUTABLE SingleImageDetector)
+set(node_plugins "${node_plugins}apriltag_ros::SingleImageDetector;$<TARGET_FILE:${PROJECT_NAME}>\n")
 
 # since the package installs libraries without exporting them
 # it needs to make sure that the library path is being exported
@@ -104,10 +107,10 @@ if(NOT WIN32)
 endif()
 
 install(TARGETS
-  atlas_apriltag_ros_component
+  ${PROJECT_NAME}
   DESTINATION lib/${PROJECT_NAME})
 
-install(TARGETS atlas_apriltag_ros_component
+install(TARGETS ${PROJECT_NAME}
         EXPORT export_${PROJECT_NAME}
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib

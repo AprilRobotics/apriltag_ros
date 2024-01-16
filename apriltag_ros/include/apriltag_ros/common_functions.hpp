@@ -76,8 +76,8 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2/utils.h"
 
-#include "ageve_interfaces/msg/april_tag_detection_array.hpp"
-#include "ageve_interfaces/msg/april_tag_detection.hpp"
+#include "apriltag_ros_interfaces/msg/april_tag_detection_array.hpp"
+#include "apriltag_ros_interfaces/msg/april_tag_detection.hpp"
 
 #include "yaml-cpp/yaml.h"
 
@@ -179,7 +179,7 @@ class TagDetector
             const std_msgs::msg::Header& header);
 
         // Detect tags in an image
-        ageve_interfaces::msg::AprilTagDetectionArray detectTags(
+        apriltag_ros_interfaces::msg::AprilTagDetectionArray detectTags(
             const cv_bridge::CvImagePtr& image,
             const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info);
 

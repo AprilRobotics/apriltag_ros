@@ -266,7 +266,7 @@ std::vector<TagBundleDescription> TagDetector::parse_tag_bundles_from_yaml(const
     return tag_bundle_descriptions;
 }
 
-ageve_interfaces::msg::AprilTagDetectionArray TagDetector::detectTags (
+apriltag_ros_interfaces::msg::AprilTagDetectionArray TagDetector::detectTags (
     const cv_bridge::CvImagePtr& image,
     const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info) {
     // Convert image to AprilTag code's format
@@ -319,7 +319,7 @@ ageve_interfaces::msg::AprilTagDetectionArray TagDetector::detectTags (
 
     // Compute the estimated translation and rotation individually for each
     // detected tag
-    ageve_interfaces::msg::AprilTagDetectionArray tag_detection_array;
+    apriltag_ros_interfaces::msg::AprilTagDetectionArray tag_detection_array;
     std::vector<std::string > detection_names;
     tag_detection_array.header = image->header;
     std::map<std::string, std::vector<cv::Point3d > > bundleObjectPoints;
@@ -405,7 +405,7 @@ ageve_interfaces::msg::AprilTagDetectionArray TagDetector::detectTags (
             makeTagPose(transform, image->header);
 
         // Add the detection to the back of the tag detection array
-        ageve_interfaces::msg::AprilTagDetection tag_detection;
+        apriltag_ros_interfaces::msg::AprilTagDetection tag_detection;
         tag_detection.pose = tag_pose;
         tag_detection.id.push_back(detection->id);
         tag_detection.size.push_back(tag_size);
@@ -438,7 +438,7 @@ ageve_interfaces::msg::AprilTagDetectionArray TagDetector::detectTags (
             makeTagPose(transform, image->header);
 
         // Add the detection to the back of the tag detection array
-        ageve_interfaces::msg::AprilTagDetection tag_detection;
+        apriltag_ros_interfaces::msg::AprilTagDetection tag_detection;
         tag_detection.pose = bundle_pose;
         tag_detection.id = bundle.bundleIds();
         tag_detection.size = bundle.bundleSizes();

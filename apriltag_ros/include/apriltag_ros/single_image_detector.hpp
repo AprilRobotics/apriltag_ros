@@ -44,26 +44,40 @@
 #ifndef APRILTAG_ROS_SINGLE_IMAGE_DETECTOR_H
 #define APRILTAG_ROS_SINGLE_IMAGE_DETECTOR_H
 
-#include "apriltag_ros/common_functions.h"
-#include <apriltag_ros/AnalyzeSingleImage.h>
+#include <iostream> 
+
+#include <rclcpp/rclcpp.hpp>
+
+#include "apriltag_ros/common_functions.hpp"
+#include "apriltag_ros/composition_visibility.h"
+#include "apriltag_ros_interfaces/srv/analyze_single_image.hpp"
+#include "apriltag_ros_interfaces/msg/april_tag_detection.hpp"
+#include "apriltag_ros_interfaces/msg/april_tag_detection_array.hpp"
 
 namespace apriltag_ros
 {
 
 class SingleImageDetector
 {
- private:
-  TagDetector tag_detector_;
-  ros::ServiceServer single_image_analysis_service_;
+    public:
+        COMPOSITION_PUBLIC 
+        explicit SingleImageDetector(const rclcpp::NodeOptions & options);
 
-  ros::Publisher tag_detections_publisher_;
-  
- public:
-  SingleImageDetector(ros::NodeHandle& nh, ros::NodeHandle& pnh);
+        COMPOSITION_PUBLIC
+        rclcpp::node_interfaces::NodeBaseInterface::SharedPtr
+        get_node_base_interface() const;
 
-  // The function which provides the single image analysis service
-  bool analyzeImage(apriltag_ros::AnalyzeSingleImage::Request& request,
-                     apriltag_ros::AnalyzeSingleImage::Response& response);
+        // The function which provides the single image analysis service
+        void analyzeImage(const apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request& request,
+                            apriltag_ros_interfaces::srv::AnalyzeSingleImage::Response& response);
+
+        rclcpp::Node::SharedPtr nh_;
+        rclcpp::QoS custom_qos_;
+    private:
+        std::shared_ptr<TagDetector> tag_detector_;
+        rclcpp::Service<apriltag_ros_interfaces::srv::AnalyzeSingleImage>::SharedPtr single_image_analysis_service_;
+
+        rclcpp::Publisher<apriltag_ros_interfaces::msg::AprilTagDetectionArray>::SharedPtr tag_detections_publisher_;
 };
 
 } // namespace apriltag_ros

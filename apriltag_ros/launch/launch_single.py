@@ -2,7 +2,7 @@
    Copyright 2023 @ MOVVO ROBOTICS
    ---------------------------------------------------------
    Authors: Albert Arlà, Martí Bolet, Bernat Gaston, María Mercadé
-   Contact: support.idi@ageve.net
+   Contact: support.idi@movvo.eu
 """
 
 import os
@@ -32,7 +32,7 @@ def generate_launch_description():
     # Nodes to launch
     node = Node(
         package=PACKAGE_NAME,
-        executable='ContinuousDetector', # Other option SingleDetector
+        executable='SingleImageDetector', # Other option SingleDetector
         arguments=['--ros-args', '--log-level', 'info'],
         parameters=[config_file],
         output="screen",
