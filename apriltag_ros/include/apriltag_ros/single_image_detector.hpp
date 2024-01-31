@@ -68,8 +68,8 @@ class SingleImageDetector
         get_node_base_interface() const;
 
         // The function which provides the single image analysis service
-        void analyzeImage(const apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request& request,
-                            apriltag_ros_interfaces::srv::AnalyzeSingleImage::Response& response);
+        void analyzeImage(const std::shared_ptr<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request> request,
+                            std::shared_ptr<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Response> response);
 
         rclcpp::Node::SharedPtr nh_;
         rclcpp::QoS custom_qos_;

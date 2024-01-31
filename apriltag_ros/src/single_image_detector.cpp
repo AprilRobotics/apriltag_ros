@@ -45,33 +45,31 @@ SingleImageDetector::SingleImageDetector (const rclcpp::NodeOptions & options)
 
     // Advertise the single image analysis service
     single_image_analysis_service_ = nh_->create_service<apriltag_ros_interfaces::srv::AnalyzeSingleImage>("single_image_tag_detection",
-                        [this](const std::shared_ptr<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request> request,
-                        std::shared_ptr<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Response> response) {
-                        this->analyzeImage(*request, *response);});
+        std::bind(&SingleImageDetector::analyzeImage, this, _1, _2));
 
     tag_detections_publisher_ = nh_->create_publisher<apriltag_ros_interfaces::msg::AprilTagDetectionArray>("tag_detections", 1);
     RCLCPP_INFO(nh_->get_logger(),"Ready to do tag detection on single images");
 }
 
 void SingleImageDetector::analyzeImage(
-    const apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request& request,
-    apriltag_ros_interfaces::srv::AnalyzeSingleImage::Response& response)
+    const std::shared_ptr<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request> request,
+    std::shared_ptr<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Response> response)
 {
 
     RCLCPP_INFO(nh_->get_logger(),"[ Summoned to analyze image ]");
     RCLCPP_INFO(nh_->get_logger(),"Image load path: %s",
-            request.full_path_where_to_get_image.c_str());
+            request->full_path_where_to_get_image.c_str());
     RCLCPP_INFO(nh_->get_logger(),"Image save path: %s",
-            request.full_path_where_to_save_image.c_str());
+            request->full_path_where_to_save_image.c_str());
 
     // Read the image
-    cv::Mat image = cv::imread(request.full_path_where_to_get_image,
+    cv::Mat image = cv::imread(request->full_path_where_to_get_image,
                                 cv::IMREAD_COLOR);
     if (image.data == NULL)
     {
         // Cannot read image
         RCLCPP_ERROR(nh_->get_logger(),"Could not read image %s", 
-                request.full_path_where_to_get_image.c_str());
+                request->full_path_where_to_get_image.c_str());
         return;
     }
 
@@ -79,17 +77,17 @@ void SingleImageDetector::analyzeImage(
     cv_bridge::CvImagePtr loaded_image(new cv_bridge::CvImage(std_msgs::msg::Header(),
                                                                 "bgr8", image));
     loaded_image->header.frame_id = "camera";
-    response.tag_detections =
+    response->tag_detections =
         tag_detector_->detectTags(loaded_image,sensor_msgs::msg::CameraInfo::ConstSharedPtr(
-            new sensor_msgs::msg::CameraInfo(request.camera_info)));
+            new sensor_msgs::msg::CameraInfo(request->camera_info)));
 
     // Publish detected tags (AprilTagDetectionArray, basically an array of
     // geometry_msgs/PoseWithCovarianceStamped)
-    tag_detections_publisher_->publish(response.tag_detections);
+    tag_detections_publisher_->publish(response->tag_detections);
 
     // Save tag detections image
     tag_detector_->drawDetections(loaded_image);
-    cv::imwrite(request.full_path_where_to_save_image, loaded_image->image);
+    cv::imwrite(request->full_path_where_to_save_image, loaded_image->image);
 
     RCLCPP_INFO(nh_->get_logger(),"Done!");
 
