@@ -32,7 +32,7 @@
 #include "apriltag_ros/common_functions.hpp"
 #include "apriltag_ros_interfaces/srv/analyze_single_image.hpp"
 
-bool getRosParameter (ros::NodeHandle& pnh, std::string name, double& param)
+bool getRosParameter (rclcpp::Node::SharedPtr nh, std::string name, double& param)
 {
   // Write parameter "name" from ROS Parameter Server into param
   // Return true if successful, false otherwise
@@ -51,55 +51,36 @@ bool getRosParameter (ros::NodeHandle& pnh, std::string name, double& param)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "apriltag_ros_single_image_client");
+	rclcpp::init(argc, argv);
 
-  ros::NodeHandle nh;
-  ros::NodeHandle pnh("~");
+  std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("single_image_client_node");
 
-  ros::ServiceClient client =
-      nh.serviceClient<apriltag_ros::AnalyzeSingleImage>(
-          "single_image_tag_detection");
+  rclcpp::Client<example_interfaces::srv::AddTwoInts>::SharedPtr client =
+    node->create_client<apriltag_ros_interfaces::srv::AnalyzeSingleImage>("single_image_tag_detection");
 
-  // Get the request parameters
-  apriltag_ros::AnalyzeSingleImage service;
-  service.request.full_path_where_to_get_image =
-      apriltag_ros::getAprilTagOption<std::string>(
-          pnh, "image_load_path", "");
-  if (service.request.full_path_where_to_get_image.empty())
-  {
-    return 1;
-  }
-  service.request.full_path_where_to_save_image =
-      apriltag_ros::getAprilTagOption<std::string>(
-          pnh, "image_save_path", "");
-  if (service.request.full_path_where_to_save_image.empty())
-  {
-    return 1;
-  }
+  auto request = std::make_shared<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request>();
 
-  // Replicate sensors_msgs/CameraInfo message (must be up-to-date with the
-  // analyzed image!)  
-  service.request.camera_info.distortion_model = "plumb_bob";
-  double fx, fy, cx, cy;
-  if (!getRosParameter(pnh, "fx", fx))
-    return 1;
-  if (!getRosParameter(pnh, "fy", fy))
-    return 1;
-  if (!getRosParameter(pnh, "cx", cx))
-    return 1;
-  if (!getRosParameter(pnh, "cy", cy))
-    return 1;
-  // Intrinsic camera matrix for the raw (distorted) images
-  service.request.camera_info.K[0] = fx;
-  service.request.camera_info.K[2] = cx;
-  service.request.camera_info.K[4] = fy;
-  service.request.camera_info.K[5] = cy;
-  service.request.camera_info.K[8] = 1.0;
-  service.request.camera_info.P[0] = fx;
-  service.request.camera_info.P[2] = cx;
-  service.request.camera_info.P[5] = fy;
-  service.request.camera_info.P[6] = cy;
-  service.request.camera_info.P[10] = 1.0;
+  // Write desired path where to get the image
+  request->full_path_where_to_get_image = "/full/path/of/image";
+
+  // Write desired path where to save the image
+  request->full_path_where_to_save_image = "/full/path/of/image";
+
+  // Write camera parameters
+  double fx = 0.0;
+  double fy = 0.0;
+  double cx = 0.0;
+  double cy = 0.0;
+  request->camera_info.K[0] = fx;
+  request->camera_info.K[2] = cx;
+  request->camera_info.K[4] = fy;
+  request->camera_info.K[5] = cy;
+  request->camera_info.K[8] = 1.0;
+  request->camera_info.P[0] = fx;
+  request->camera_info.P[2] = cx;
+  request->camera_info.P[5] = fy;
+  request->camera_info.P[6] = cy;
+  request->camera_info.P[10] = 1.0;
 
   // Call the service (detect tags in the image specified by the
   // image_load_path)
@@ -118,5 +99,6 @@ int main(int argc, char **argv)
     return 1;
   }
 
+	rclcpp::shutdown();
   return 0; // happy ending
 }

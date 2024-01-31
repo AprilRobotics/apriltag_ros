@@ -99,6 +99,9 @@ set(node_plugins "${node_plugins}apriltag_ros::ContinuousDetector;$<TARGET_FILE:
 rclcpp_components_register_node(${PROJECT_NAME} PLUGIN "apriltag_ros::SingleImageDetector" EXECUTABLE SingleImageDetector)
 set(node_plugins "${node_plugins}apriltag_ros::SingleImageDetector;$<TARGET_FILE:${PROJECT_NAME}>\n")
 
+add_executable(single_image_client src/apriltag_ros_single_image_client_node.cpp) 
+target_link_libraries(single_image_client ${PROJECT_NAME})
+
 # since the package installs libraries without exporting them
 # it needs to make sure that the library path is being exported
 if(NOT WIN32)
