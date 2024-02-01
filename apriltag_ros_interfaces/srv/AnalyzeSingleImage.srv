@@ -12,3 +12,4 @@ string full_path_where_to_save_image
 sensor_msgs/CameraInfo camera_info
 ---
 AprilTagDetectionArray tag_detections
+bool success

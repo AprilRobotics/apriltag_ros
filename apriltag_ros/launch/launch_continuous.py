@@ -1,10 +1,3 @@
-"""
-   Copyright 2023 @ MOVVO ROBOTICS
-   ---------------------------------------------------------
-   Authors: Albert Arlà, Martí Bolet, Bernat Gaston, María Mercadé
-   Contact: support.idi@movvo.eu
-"""
-
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node, SetParameter

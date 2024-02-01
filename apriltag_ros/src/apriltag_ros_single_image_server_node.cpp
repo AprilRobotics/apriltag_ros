@@ -27,51 +27,19 @@
  * those of the authors and should not be interpreted as representing official
  * policies, either expressed or implied, of the California Institute of
  * Technology.
- *
- * single_image_detector.hpp ****************************************************
- *
- * Wrapper class of TagDetector class which calls TagDetector::detectTags on a
- * an image stored at a specified load path and stores the output at a specified
- * save path.
- *
- * $Revision: 1.0 $
- * $Date: 2017/12/17 13:33:40 $
- * $Author: dmalyuta $
- *
- * Originator:        Danylo Malyuta, JPL
- ******************************************************************************/
-
-#ifndef APRILTAG_ROS_SINGLE_IMAGE_DETECTOR_HPP
-#define APRILTAG_ROS_SINGLE_IMAGE_DETECTOR_HPP
-
-#include <iostream> 
-
-#include <rclcpp/rclcpp.hpp>
+ */
 
 #include "apriltag_ros/common_functions.hpp"
-#include "apriltag_ros_interfaces/srv/analyze_single_image.hpp"
-#include "apriltag_ros_interfaces/msg/april_tag_detection.hpp"
-#include "apriltag_ros_interfaces/msg/april_tag_detection_array.hpp"
+#include "apriltag_ros/single_image_detector.hpp"
 
-namespace apriltag_ros
+int main(int argc, char **argv)
 {
+    rclcpp::init(argc, argv);
 
-class SingleImageDetector
-{
-    public:
-        SingleImageDetector(rclcpp::Node::SharedPtr node);
+    auto node = std::make_shared<rclcpp::Node>("apriltag_ros_single_image_server");
 
-        // The function which provides the single image analysis service
-        void analyzeImage(const std::shared_ptr<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request> request,
-                            std::shared_ptr<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Response> response);
-    private:
-        std::shared_ptr<TagDetector> tag_detector_;
-        rclcpp::Node::SharedPtr nh_;
-        rclcpp::Service<apriltag_ros_interfaces::srv::AnalyzeSingleImage>::SharedPtr single_image_analysis_service_;
+    apriltag_ros::SingleImageDetector continuous_tag_detector(node);
 
-        rclcpp::Publisher<apriltag_ros_interfaces::msg::AprilTagDetectionArray>::SharedPtr tag_detections_publisher_;
-};
-
-} // namespace apriltag_ros
-
-#endif // APRILTAG_ROS_SINGLE_IMAGE_DETECTOR_HPP
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+}

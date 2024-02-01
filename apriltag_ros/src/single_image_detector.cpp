@@ -29,26 +29,30 @@
  * Technology.
  */
 
+#include <type_traits>
+
 #include "apriltag_ros/single_image_detector.hpp"
 
 #include <opencv2/highgui/highgui.hpp>
-#include <std_msgs/msg/header.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <cv_bridge/cv_bridge.h>
 
-using namespace apriltag_ros;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-SingleImageDetector::SingleImageDetector (const rclcpp::NodeOptions & options)
-: nh_(std::make_shared<rclcpp::Node>("apriltag_node", options)), custom_qos_(1)
+namespace apriltag_ros
 {
-    rclcpp::uninstall_signal_handlers();
 
+SingleImageDetector::SingleImageDetector(rclcpp::Node::SharedPtr node)
+    : nh_(node)
+{
     // Advertise the single image analysis service
     single_image_analysis_service_ = nh_->create_service<apriltag_ros_interfaces::srv::AnalyzeSingleImage>("single_image_tag_detection",
         std::bind(&SingleImageDetector::analyzeImage, this, _1, _2));
 
     tag_detections_publisher_ = nh_->create_publisher<apriltag_ros_interfaces::msg::AprilTagDetectionArray>("tag_detections", 1);
-    RCLCPP_INFO(nh_->get_logger(),"Ready to do tag detection on single images");
+    tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(nh_));
+    RCLCPP_INFO(nh_->get_logger(), "Ready to do tag detection on single images");
 }
 
 void SingleImageDetector::analyzeImage(
@@ -56,20 +60,21 @@ void SingleImageDetector::analyzeImage(
     std::shared_ptr<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Response> response)
 {
 
-    RCLCPP_INFO(nh_->get_logger(),"[ Summoned to analyze image ]");
-    RCLCPP_INFO(nh_->get_logger(),"Image load path: %s",
+    RCLCPP_INFO(nh_->get_logger(), "[ Summoned to analyze image ]");
+    RCLCPP_INFO(nh_->get_logger(), "Image load path: %s",
             request->full_path_where_to_get_image.c_str());
-    RCLCPP_INFO(nh_->get_logger(),"Image save path: %s",
+    RCLCPP_INFO(nh_->get_logger(), "Image save path: %s",
             request->full_path_where_to_save_image.c_str());
 
     // Read the image
     cv::Mat image = cv::imread(request->full_path_where_to_get_image,
                                 cv::IMREAD_COLOR);
-    if (image.data == NULL)
+    if (image.empty())
     {
         // Cannot read image
-        RCLCPP_ERROR(nh_->get_logger(),"Could not read image %s", 
+        RCLCPP_ERROR(nh_->get_logger(), "Could not read image %s", 
                 request->full_path_where_to_get_image.c_str());
+        response->success = false;
         return;
     }
 
@@ -78,8 +83,7 @@ void SingleImageDetector::analyzeImage(
                                                                 "bgr8", image));
     loaded_image->header.frame_id = "camera";
     response->tag_detections =
-        tag_detector_->detectTags(loaded_image,sensor_msgs::msg::CameraInfo::ConstSharedPtr(
-            new sensor_msgs::msg::CameraInfo(request->camera_info)));
+        tag_detector_->detectTags(loaded_image, std::make_shared<const sensor_msgs::msg::CameraInfo>(request->camera_info));
 
     // Publish detected tags (AprilTagDetectionArray, basically an array of
     // geometry_msgs/PoseWithCovarianceStamped)
@@ -89,21 +93,9 @@ void SingleImageDetector::analyzeImage(
     tag_detector_->drawDetections(loaded_image);
     cv::imwrite(request->full_path_where_to_save_image, loaded_image->image);
 
-    RCLCPP_INFO(nh_->get_logger(),"Done!");
+    RCLCPP_INFO(nh_->get_logger(), "Done!");
 
+    response->success = true;
 }
 
-
-rclcpp::node_interfaces::NodeBaseInterface::SharedPtr
-SingleImageDetector::get_node_base_interface() const
-{
-    return this->nh_->get_node_base_interface();
-}
-
-
-#include "rclcpp_components/register_node_macro.hpp"
-
-// Register the component with class_loader.
-// This acts as a sort of entry point, allowing the component to be discoverable when its library
-// is being loaded into a running process.
-RCLCPP_COMPONENTS_REGISTER_NODE(apriltag_ros::SingleImageDetector)
+} // namespace apriltag_ros

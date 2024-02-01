@@ -59,9 +59,6 @@ include_directories(
   include
 )
 
-# create ament index resource which references the libraries in the binary dir
-set(node_plugins "")  
-
 # Add cpp libraries
 add_library(${PROJECT_NAME} SHARED
   "src/continuous_detector.cpp"
@@ -91,26 +88,24 @@ ament_target_dependencies(${PROJECT_NAME}
                           yaml-cpp
                           geometry_msgs
                           std_msgs
-                          )
+)
 
+# Register nodes
 rclcpp_components_register_node(${PROJECT_NAME} PLUGIN "apriltag_ros::ContinuousDetector" EXECUTABLE ContinuousDetector)
-set(node_plugins "${node_plugins}apriltag_ros::ContinuousDetector;$<TARGET_FILE:${PROJECT_NAME}>\n")
-
 rclcpp_components_register_node(${PROJECT_NAME} PLUGIN "apriltag_ros::SingleImageDetector" EXECUTABLE SingleImageDetector)
-set(node_plugins "${node_plugins}apriltag_ros::SingleImageDetector;$<TARGET_FILE:${PROJECT_NAME}>\n")
 
+# Build executables
 add_executable(single_image_client src/apriltag_ros_single_image_client_node.cpp) 
 target_link_libraries(single_image_client ${PROJECT_NAME})
 
-# since the package installs libraries without exporting them
-# it needs to make sure that the library path is being exported
-if(NOT WIN32)
-  ament_environment_hooks(
-    "${ament_cmake_package_templates_ENVIRONMENT_HOOK_LIBRARY_PATH}")
-endif()
+add_executable(single_image_server src/apriltag_ros_single_image_server_node.cpp) 
+target_link_libraries(single_image_server ${PROJECT_NAME})
 
+# Install targets
 install(TARGETS
   ${PROJECT_NAME}
+  single_image_client
+  single_image_server
   DESTINATION lib/${PROJECT_NAME})
 
 install(TARGETS ${PROJECT_NAME}

@@ -32,73 +32,62 @@
 #include "apriltag_ros/common_functions.hpp"
 #include "apriltag_ros_interfaces/srv/analyze_single_image.hpp"
 
-bool getRosParameter (rclcpp::Node::SharedPtr nh, std::string name, double& param)
-{
-  // Write parameter "name" from ROS Parameter Server into param
-  // Return true if successful, false otherwise
-  if (pnh.hasParam(name.c_str()))
-  {
-    pnh.getParam(name.c_str(), param);
-    ROS_INFO_STREAM("Set camera " << name.c_str() << " = " << param);
-    return true;
-  }
-  else
-  {
-    ROS_ERROR_STREAM("Could not find " << name.c_str() << " parameter!");
-    return false;
-  }
-}
-
 int main(int argc, char **argv)
 {
-	rclcpp::init(argc, argv);
+    rclcpp::init(argc, argv);
 
-  std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("single_image_client_node");
+    std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("single_image_client_node");
 
-  rclcpp::Client<example_interfaces::srv::AddTwoInts>::SharedPtr client =
-    node->create_client<apriltag_ros_interfaces::srv::AnalyzeSingleImage>("single_image_tag_detection");
+    auto client = node->create_client<apriltag_ros_interfaces::srv::AnalyzeSingleImage>("single_image_tag_detection");
 
-  auto request = std::make_shared<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request>();
+    auto request = std::make_shared<apriltag_ros_interfaces::srv::AnalyzeSingleImage::Request>();
+    request->full_path_where_to_get_image = argv[1];
+    request->full_path_where_to_save_image = argv[2];
 
-  // Write desired path where to get the image
-  request->full_path_where_to_get_image = "/full/path/of/image";
+    // Replicate sensor_msgs/CameraInfo message
+    request->camera_info.distortion_model = "plumb_bob";
 
-  // Write desired path where to save the image
-  request->full_path_where_to_save_image = "/full/path/of/image";
+    // Declare parameters with default values
+    node->declare_parameter<double>("fx", 652.7934615847107);
+    node->declare_parameter<double>("fy", 653.9480389077635);
+    node->declare_parameter<double>("cx", 307.1288710375904);
+    node->declare_parameter<double>("cy", 258.7823279214385);
 
-  // Write camera parameters
-  double fx = 0.0;
-  double fy = 0.0;
-  double cx = 0.0;
-  double cy = 0.0;
-  request->camera_info.K[0] = fx;
-  request->camera_info.K[2] = cx;
-  request->camera_info.K[4] = fy;
-  request->camera_info.K[5] = cy;
-  request->camera_info.K[8] = 1.0;
-  request->camera_info.P[0] = fx;
-  request->camera_info.P[2] = cx;
-  request->camera_info.P[5] = fy;
-  request->camera_info.P[6] = cy;
-  request->camera_info.P[10] = 1.0;
+    // Get parameters
+    double fx, fy, cx, cy;
+    node->get_parameter("fx", fx);
+    node->get_parameter("fy", fy);
+    node->get_parameter("cx", cx);
+    node->get_parameter("cy", cy);
 
-  // Call the service (detect tags in the image specified by the
-  // image_load_path)
-  if (client.call(service))
-  {
-    // use parameter run_quielty=false in order to have the service
-    // print out the tag position and orientation
-    if (service.response.tag_detections.detections.size() == 0)
+    // Intrinsic camera matrix for the raw (distorted) images
+    request->camera_info.k[0] = fx;
+    request->camera_info.k[2] = cx;
+    request->camera_info.k[4] = fy;
+    request->camera_info.k[5] = cy;
+    request->camera_info.k[8] = 1.0;
+    request->camera_info.p[0] = fx;
+    request->camera_info.p[2] = cx;
+    request->camera_info.p[5] = fy;
+    request->camera_info.p[6] = cy;
+    request->camera_info.p[10] = 1.0;
+
+    // Call the service (detect tags in the image specified by the
+    // image_load_path)
+    auto result_future = client->async_send_request(request);
+    if (rclcpp::spin_until_future_complete(node, result_future) != rclcpp::FutureReturnCode::SUCCESS)
     {
-      ROS_WARN_STREAM("No detected tags!");
+        RCLCPP_ERROR(node->get_logger(), "Service call failed.");
+        return 1;
     }
-  }
-  else
-  {
-    ROS_ERROR("Failed to call service single_image_tag_detection");
-    return 1;
-  }
 
-	rclcpp::shutdown();
-  return 0; // happy ending
+    auto result = result_future.get();
+    auto tag_detections = result->tag_detections;
+    if (tag_detections.detections.size() == 0)
+    {
+        RCLCPP_WARN(node->get_logger(), "No detected tags!");
+    }
+
+    rclcpp::shutdown();
+    return 0; // happy ending
 }
