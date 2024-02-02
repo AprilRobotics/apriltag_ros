@@ -40,8 +40,8 @@
  * Originator:        Danylo Malyuta, JPL
  ******************************************************************************/
 
-#ifndef ATLAS_APRILTAG_ROS_CONTINUOUS_DETECTOR_H
-#define ATLAS_APRILTAG_ROS_CONTINUOUS_DETECTOR_H
+#ifndef APRILTAG_ROS_CONTINUOUS_DETECTOR_HPP
+#define APRILTAG_ROS_CONTINUOUS_DETECTOR_HPP
 
 // C++
 #include <memory>
@@ -91,4 +91,4 @@ class ContinuousDetector
 
 } // namespace apriltag_ros
 
-#endif // ATLAS_APRILTAG_ROS_CONTINUOUS_DETECTOR_H
+#endif // APRILTAG_ROS_CONTINUOUS_DETECTOR_HPP

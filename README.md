@@ -43,6 +43,19 @@ For a correct depth estimation (and hence the correct full pose) it is necessary
 Below is a visualization of the tag size (red arrow) to be specified for the most common tag classes:
 ![Tag Size Guide](./apriltag_ros/docs/tag_size_guide.svg)
 
+## Tags Parameter Setup
+
+The `config/tags.yaml` file defines the standalone tags and tag bundles that should be looked for in the input image. Rogue tags (i.e., those that are not defined in `config/tags.yaml`) will be ignored. **IMPORTANT**:
+
+- No tag ID should appear twice with different sizes (this creates ambiguity in the detection).
+- No tag ID should appear twice in the image (this creates ambiguity in the detection).
+- It is fine for a tag with the same ID to be listed both in `standalone_tags` and in `tag_bundles`, as long as it has the same size.
+
+Furthermore, make sure that you print your tags surrounded by at least a 1-bit wide white border. The core AprilTag 2 algorithm samples this surrounding white border for creating a light model over the tag surface so do not, e.g., cut or print the tags out flush with their black border.
+
+The `tag_bundles` are filled out with the relative poses of the constituent tags to the bundle origin. Sometimes you may know these transforms (e.g., you print the bundle on a single sheet of paper where you lay out the tags in a known fashion). When you do not know these relative poses (e.g., you stick individual tags roughly on the floor/wall), perform a calibration to easily determine them.
+
+
 ## Nodes
 
 1. **apriltag_ros**
@@ -122,6 +135,13 @@ ros2 launch apriltag_ros single_image_client_launch.py image_load_path:=<FULL PA
 PNG images work well (others may work too, but have not been tested). The client will run and you will see the server print out Done! if everything is successful (the server will continue running, waiting for another single image detection service call). The output image will be at your indicated output image path.
 
 ### Detection in a video stream
+The most common use case for this package is to detect tags in a continuous stream of images (video frames) coming from a camera. The camera name and image topic can be remapped to your implementation. Furthermore, you can set the `publish_tag_detections_image=false` in order to not publish the /tag_detections_image (more efficient if you do not care to see an image with the detected tags highlighted).
+
+With the parameters correctly configured and the camera image stream being published, running the detector is trivial: 
+
+```
+ros2 launch apriltag_ros launch_continuous.py
+```
 
 ## Contributing
 

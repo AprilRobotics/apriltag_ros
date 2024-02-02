@@ -41,8 +41,8 @@
  * Originator:        Danylo Malyuta, JPL
  ******************************************************************************/
 
-#ifndef ATLAS_APRILTAG_ROS_COMMON_FUNCTIONS_H
-#define ATLAS_APRILTAG_ROS_COMMON_FUNCTIONS_H
+#ifndef APRILTAG_ROS_COMMON_FUNCTIONS_HPP
+#define APRILTAG_ROS_COMMON_FUNCTIONS_HPP
 
 // C++
 #include <string>
@@ -242,4 +242,4 @@ class TagDetector
 
 } // namespace apriltag_ros
 
-#endif // ATLAS_APRILTAG_ROS_COMMON_FUNCTIONS_H
+#endif // APRILTAG_ROS_COMMON_FUNCTIONS_HPP
