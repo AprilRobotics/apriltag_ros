@@ -2,3 +2,5 @@
 **/*.bag
 .vscode/
 build/
+install/
+log/

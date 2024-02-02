@@ -29,17 +29,17 @@
  * Technology.
  */
 
-#include "apriltag_ros/common_functions.h"
-#include "apriltag_ros/single_image_detector.h"
+#include "apriltag_ros/common_functions.hpp"
+#include "apriltag_ros/single_image_detector.hpp"
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "apriltag_ros_single_image_server");
+    rclcpp::init(argc, argv);
 
-  ros::NodeHandle nh;
-  ros::NodeHandle pnh("~");
+    auto node = std::make_shared<rclcpp::Node>("apriltag_ros_single_image_server");
 
-  apriltag_ros::SingleImageDetector continuous_tag_detector(nh, pnh);
-  
-  ros::spin();
+    apriltag_ros::SingleImageDetector continuous_tag_detector(node);
+
+    rclcpp::spin(node);
+    rclcpp::shutdown();
 }

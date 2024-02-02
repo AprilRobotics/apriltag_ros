@@ -40,49 +40,55 @@
  * Originator:        Danylo Malyuta, JPL
  ******************************************************************************/
 
-#ifndef APRILTAG_ROS_CONTINUOUS_DETECTOR_H
-#define APRILTAG_ROS_CONTINUOUS_DETECTOR_H
+#ifndef APRILTAG_ROS_CONTINUOUS_DETECTOR_HPP
+#define APRILTAG_ROS_CONTINUOUS_DETECTOR_HPP
 
-#include "apriltag_ros/common_functions.h"
-
+// C++
 #include <memory>
 #include <mutex>
 
-#include <nodelet/nodelet.h>
-#include <ros/service_server.h>
-#include <std_srvs/Empty.h>
+#include "apriltag_ros/common_functions.hpp"
+#include "apriltag_ros/composition_visibility.h"
+
+#include <rclcpp/rclcpp.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.hpp>
+
+// Own
+#include "apriltag_ros_interfaces/msg/april_tag_detection.hpp"
+#include "apriltag_ros_interfaces/msg/april_tag_detection_array.hpp"
 
 namespace apriltag_ros
 {
 
-class ContinuousDetector: public nodelet::Nodelet
+class ContinuousDetector
 {
- public:
-  ContinuousDetector() = default;
-  ~ContinuousDetector() = default;
+    public:
+    	COMPOSITION_PUBLIC 
+        explicit ContinuousDetector(const rclcpp::NodeOptions & options);
 
-  void onInit();
+        COMPOSITION_PUBLIC
+        rclcpp::node_interfaces::NodeBaseInterface::SharedPtr
+        get_node_base_interface() const;
 
-  void imageCallback(const sensor_msgs::ImageConstPtr& image_rect,
-                     const sensor_msgs::CameraInfoConstPtr& camera_info);
+        void ImageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image,
+                        const sensor_msgs::msg::CameraInfo::ConstSharedPtr& camera_info);
 
-  void refreshTagParameters();
+        rclcpp::Node::SharedPtr nh_;
+        rclcpp::QoS custom_qos_;
 
- private:
-  std::mutex detection_mutex_;
-  std::shared_ptr<TagDetector> tag_detector_;
-  bool draw_tag_detections_image_;
-  cv_bridge::CvImagePtr cv_image_;
+        std::mutex detection_mutex_;
+        std::shared_ptr<TagDetector> tag_detector_;
+        bool draw_tag_detections_image_;
+        cv_bridge::CvImagePtr cv_image_;
 
-  std::shared_ptr<image_transport::ImageTransport> it_;
-  image_transport::CameraSubscriber camera_image_subscriber_;
-  image_transport::Publisher tag_detections_image_publisher_;
-  ros::Publisher tag_detections_publisher_;
+        std::shared_ptr<image_transport::ImageTransport> it_;
+        image_transport::CameraSubscriber camera_image_subscriber_;
+        image_transport::Publisher tag_detections_image_publisher_;
+        rclcpp::Publisher<apriltag_ros_interfaces::msg::AprilTagDetectionArray>::SharedPtr tag_detections_publisher_;
 
-  ros::ServiceServer refresh_params_service_;
-  bool refreshParamsCallback(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
 };
 
 } // namespace apriltag_ros
 
-#endif // APRILTAG_ROS_CONTINUOUS_DETECTOR_H
+#endif // APRILTAG_ROS_CONTINUOUS_DETECTOR_HPP
