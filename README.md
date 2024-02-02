@@ -15,10 +15,10 @@ This package provides functionality for detecting AprilTags in both continuous i
 
 The behavior of the ROS wrapper is defined by two configuration files:
 - `config/tags.yaml`: Defines the tags and tag bundles to detect.
-- `config/settings.yaml`: Configures the core Apriltag 3 algorithm parameters.
+- `config/params.yaml`: Configures the core Apriltag 3 algorithm parameters.
 
 The package outputs the following topics:
-- `/tf`: Provides the relative pose between the camera frame and each detected tag's or tag bundle's frame, specified in `tags.yaml`, using tf. This is published only if `publish_tf` is set to true in `settings.yaml`.
+- `/tf`: Provides the relative pose between the camera frame and each detected tag's or tag bundle's frame, specified in `tags.yaml`, using tf. This is published only if `publish_tf` is set to true in `params.yaml`.
 - `/tag_detections`: Carries the same information as `/tf`, but as a custom message containing the tag ID(s), size(s), and `geometry_msgs/PoseWithCovarianceStamped` pose information (applies in the case of tag bundles). This topic is always published.
 - `/tag_detections_image`: Displays the same input image from `/camera/image_rect`, but with the detected tags highlighted. This is published only if `publish_tag_detections_image` is set to true in `config/params.yaml`.
 

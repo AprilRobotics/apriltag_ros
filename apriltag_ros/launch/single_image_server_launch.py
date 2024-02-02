@@ -9,7 +9,7 @@ PACKAGE_NAME = 'apriltag_ros'
 
 def generate_launch_description():
     # Configuración de los archivos
-    config_file = os.path.join(get_package_share_directory(PACKAGE_NAME), "config", "settings.yaml")
+    config_file = os.path.join(get_package_share_directory(PACKAGE_NAME), "config", "params.yaml")
     tags_config_file = os.path.join(get_package_share_directory(PACKAGE_NAME), "config", "tags.yaml")
 
     # Argumento de lanzamiento
