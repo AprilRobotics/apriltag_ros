@@ -164,6 +164,7 @@ class TagDetector
 
   // AprilTag 2 code's attributes
   std::string family_;
+  double detection_distance_;
   int threads_;
   double decimate_;
   double blur_;

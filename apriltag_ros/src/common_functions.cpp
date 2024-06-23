@@ -16,7 +16,7 @@
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
  * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * CbONSEQUETIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
  * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
@@ -53,7 +53,8 @@ TagDetector::TagDetector(ros::NodeHandle pnh) :
     refine_edges_(getAprilTagOption<int>(pnh, "tag_refine_edges", 1)),
     debug_(getAprilTagOption<int>(pnh, "tag_debug", 0)),
     max_hamming_distance_(getAprilTagOption<int>(pnh, "max_hamming_dist", 2)),
-    publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false))
+    publish_tf_(getAprilTagOption<bool>(pnh, "publish_tf", false)),
+    detection_distance_(getAprilTagOption<double>(pnh,"detection_distance",1.0))
 {
   // Parse standalone tag descriptions specified by user (stored on ROS
   // parameter server)
@@ -352,6 +353,8 @@ AprilTagDetectionArray TagDetector::detectTags (
     tag_detection.pose = tag_pose;
     tag_detection.id.push_back(detection->id);
     tag_detection.size.push_back(tag_size);
+    // This pr chooses the distance limit to push detection array, default selection 1.0 meter.
+    if (tag_detection.pose.pose.pose.position.z < detection_distance_)
     tag_detection_array.detections.push_back(tag_detection);
     detection_names.push_back(standaloneDescription->frame_name());
   }

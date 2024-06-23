@@ -11,3 +11,4 @@ max_hamming_dist:  2          # default: 2 (Tunable parameter with 2 being a goo
 # Other parameters
 publish_tf:        true       # default: false
 transport_hint:    "raw"      # default: raw, see http://wiki.ros.org/image_transport#Known_Transport_Packages for options
+detection_distance: 1.0 
